@@ -39,7 +39,19 @@ path.Visualize = true
 
 --Functions
 local function findTarget()
-	return SimplePath.GetNearestCharacter(hrp.Position)
+	--Get the nearest
+	local nearestCharacter
+	local nearestDistance
+	for i, character in pairs(workspace:GetChildren()) do
+		if character:FindFirstChild("Humanoid") and character ~= self then
+			local distance = (character.HumanoidRootPart.Position - hrp.Position).Magnitude
+			if not nearestDistance or distance < nearestDistance then
+				nearestDistance = distance
+				nearestCharacter = character
+			end
+		end
+	end
+	return nearestCharacter, nearestDistance
 end
 
 local climb = false

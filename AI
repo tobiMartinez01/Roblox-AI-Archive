@@ -1,0 +1,74 @@
+local self = script.Parent
+local target
+local humanoid = self.Humanoid
+local hrp = self.HumanoidRootPart
+
+--Libraries
+local SimplePath = require(game.ServerStorage.SimplePath)
+
+--Workspaces
+local RunService = game["Run Service"]
+local PathFindingService = game["PathfindingService"]
+
+--SimplePath
+local pathParams = {
+	AgentHeight = self:GetExtentsSize().Y,
+	AgentCanJump = true,
+	AgentCanClimb = true,
+	--AgentRadius = 2, --Changing this can cause the agent to not running correctly
+	--WaypointSpacing = 1,
+	Costs = {
+		-- Smaller = higher priority
+		Climb = 1,
+		Blocked = math.huge
+	},
+	PathSettings = {
+		SupportPartialPath = true
+	}
+}
+local path, path_ = SimplePath.new(self, pathParams)
+path.Visualize = true
+
+--Functions
+local function findTarget()
+	return SimplePath.GetNearestCharacter(hrp.Position)
+end
+
+local climb = false
+
+RunService.Heartbeat:Connect(function()
+	target = findTarget()
+	if target then
+		local target_hrp = target.HumanoidRootPart
+		local target_humanoid = target.Humanoid
+		
+		local destination = target.HumanoidRootPart.Position
+		
+		if climb == false then
+			path:Run(destination)
+			local path_climb = PathFindingService:CreatePath(pathParams)
+			path_climb:ComputeAsync(hrp.Position , destination)
+			local waypoints = path_climb:GetWaypoints()
+			
+			coroutine.wrap(function()
+				for i, wp in pairs(waypoints) do
+					if wp.Label == "Climb" then
+						climb = true
+						path:Stop()
+						break
+					end
+				end
+			end)()
+			
+			if path_climb.Status == Enum.PathStatus.Success then
+				local waypoints_climb = path_climb:GetWaypoints()
+				local destination_climb = waypoints_climb[3] or waypoints_climb[2]
+				if destination_climb then
+					humanoid:MoveTo(destination_climb.Position)
+					humanoid.MoveToFinished:Wait(1)
+					climb = false
+				end
+			end
+		end
+	end
+end)

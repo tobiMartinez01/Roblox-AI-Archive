@@ -3,6 +3,14 @@ local target
 local humanoid = self.Humanoid
 local hrp = self.HumanoidRootPart
 
+--Set up
+self.PrimaryPart:SetNetworkOwner(nil)
+for i, bodypart in pairs(self:GetDescendants()) do
+	if bodypart:IsA("BasePart") then
+		bodypart.CollisionGroup = "SelfUncollide"
+	end
+end
+
 --Libraries
 local SimplePath = require(game.ServerStorage.SimplePath)
 

@@ -1,0 +1,58 @@
+--Client
+local self = script.Parent
+local events = game.ReplicatedStorage.Events
+local carry_event = events.Carry
+
+local UIS = game:GetService("UserInputService")
+local localPlayer = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = localPlayer:GetMouse()
+local RunService = game:GetService("RunService")
+
+local function findCarriableAncestor(target)
+	local current = target
+	while current do
+		if current:IsA("Model") and current:GetAttribute("CanBeCarried") then
+			return current
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
+local limitDistance = 6
+
+local IsCarrying = false
+local Target
+local camPos
+local delta
+UIS.InputBegan:Connect(function(input, isChatting)
+	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if IsCarrying == false then
+			if mouse.Target then
+				Target = mouse.Target
+				Target = findCarriableAncestor(Target)
+				if Target then
+					if (Target.PrimaryPart.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
+						IsCarrying = true
+						while IsCarrying do
+							delta = UIS:GetMouseDelta()
+							camPos = camera.CFrame.Position + (camera.CFrame.LookVector * limitDistance)
+							carry_event:InvokeServer(IsCarrying, Target, camPos, delta)
+							RunService.Heartbeat:Wait()
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+UIS.InputEnded:Connect(function(input, isChatting)
+	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if IsCarrying == true then
+			IsCarrying = false
+			carry_event:InvokeServer(IsCarrying, Target, camPos, delta)
+		end
+	end
+end)

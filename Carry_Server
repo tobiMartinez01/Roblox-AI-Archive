@@ -1,0 +1,56 @@
+local events = game.ReplicatedStorage.Events
+local carry_event = events.Carry
+local Carry
+local Carry_Orientation
+local Orientation
+local Attachment0
+carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, mouseDelta)
+	if Object then
+		if IsCarrying then
+			if not Object.PrimaryPart:FindFirstChild("Carry") then
+				Object.PrimaryPart:SetNetworkOwner(plr)
+				for i, part in pairs(Object:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CollisionGroup = "SelfUncollide"
+					end
+				end
+				Carry = Instance.new("AlignPosition", Object.PrimaryPart)
+				Carry_Orientation = Instance.new("AlignOrientation", Object.PrimaryPart)
+				Attachment0 = Instance.new("Attachment", Object.PrimaryPart)
+				Attachment0.Name = "Carry_Attachment0"
+				Carry.Name = "Carry"
+				Carry.MaxForce = 10^6
+				Carry.MaxVelocity = math.huge
+				Carry.Responsiveness = 100
+				Carry.ApplyAtCenterOfMass = true
+				Carry.Mode = Enum.PositionAlignmentMode.OneAttachment
+
+				Orientation = (Object.PrimaryPart.CFrame - Object.PrimaryPart.CFrame.Position)
+
+				Carry_Orientation.Name = "Carry_Orientation"
+				Carry_Orientation.MaxTorque = 10^6
+				Carry_Orientation.MaxAngularVelocity = math.huge
+				Carry_Orientation.Responsiveness = 50
+				Carry_Orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+
+				Carry.Attachment0 = Attachment0
+				Carry_Orientation.Attachment0 = Attachment0
+			else
+				Carry = Object.PrimaryPart:FindFirstChild("Carry")
+				Carry_Orientation = Object.PrimaryPart:FindFirstChild("Carry_Orientation")
+			end
+			Carry.Position = camPos
+			Carry_Orientation.CFrame = CFrame.new(Carry_Orientation.CFrame.Position) * Orientation
+		else
+			Object.PrimaryPart:SetNetworkOwner(nil)
+			Carry:Destroy()
+			Carry_Orientation:Destroy()
+			Attachment0:Destroy()
+			for i, part in pairs(Object:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CollisionGroup = "Default"
+				end
+			end
+		end
+	end
+end

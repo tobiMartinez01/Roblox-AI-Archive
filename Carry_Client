@@ -23,9 +23,9 @@ end
 local limitDistance = 6
 
 local IsCarrying = false
+local isRotating = false
 local Target
 local camPos
-local delta
 UIS.InputBegan:Connect(function(input, isChatting)
 	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if IsCarrying == false then
@@ -35,15 +35,28 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				if Target then
 					if (Target.PrimaryPart.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
 						IsCarrying = true
+						local delta_X = 0
 						while IsCarrying do
-							camCFrame = camera.CFrame
+							local camCFrame = camera.CFrame
 							camPos = camCFrame.Position + (camCFrame.LookVector * limitDistance)
-							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta)
+							if isRotating then
+								if UIS:IsKeyDown(Enum.KeyCode.W) then
+									delta_X+=10
+								end
+							end
+							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X)
 							RunService.Heartbeat:Wait()
 						end
 					end
 				end
 			end
+		end
+	end
+
+	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton2 then
+		if IsCarrying == true then
+			isRotating = true
+			require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls():Disable()
 		end
 	end
 end)
@@ -52,7 +65,16 @@ UIS.InputEnded:Connect(function(input, isChatting)
 	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if IsCarrying == true then
 			IsCarrying = false
+			isRotating = false
+			require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls():Enable()
 			carry_event:InvokeServer(IsCarrying, Target, camPos, delta)
+		end
+	end
+
+	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton2 then
+		if IsCarrying == true then
+			isRotating = false
+			require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls():Enable()
 		end
 	end
 end)

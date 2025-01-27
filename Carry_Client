@@ -36,9 +36,9 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					if (Target.PrimaryPart.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
 						IsCarrying = true
 						while IsCarrying do
-							delta = UIS:GetMouseDelta()
-							camPos = camera.CFrame.Position + (camera.CFrame.LookVector * limitDistance)
-							carry_event:InvokeServer(IsCarrying, Target, camPos, delta)
+							camCFrame = camera.CFrame
+							camPos = camCFrame.Position + (camCFrame.LookVector * limitDistance)
+							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta)
 							RunService.Heartbeat:Wait()
 						end
 					end

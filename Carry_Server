@@ -4,7 +4,7 @@ local Carry
 local Carry_Orientation
 local Orientation
 local Attachment0
-carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame, mouseDelta)
+carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame, delta_X)
 	if Object then
 		if IsCarrying then
 			if not Object.PrimaryPart:FindFirstChild("Carry") then
@@ -40,7 +40,8 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 				Carry_Orientation = Object.PrimaryPart:FindFirstChild("Carry_Orientation")
 			end
 			Carry.Position = camPos
-			Carry_Orientation.CFrame = camCFrame * Orientation
+			local camAngles = camCFrame - camCFrame.Position
+			Carry_Orientation.CFrame = CFrame.new(Carry_Orientation.CFrame.Position) * camAngles * Orientation
 		else
 			Object.PrimaryPart:SetNetworkOwner(nil)
 			Carry:Destroy()

@@ -40,6 +40,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					if (Target.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
 						IsCarrying = true
 						local delta_X = 0
+						local delta_Y = 0
 						while IsCarrying do
 							local camCFrame = camera.CFrame
 							camPos = camCFrame.Position + (camCFrame.LookVector * limitDistance)
@@ -51,8 +52,16 @@ UIS.InputBegan:Connect(function(input, isChatting)
 								if UIS:IsKeyDown(Enum.KeyCode.S) then
 									delta_X-=10
 								end
+								
+								if UIS:IsKeyDown(Enum.KeyCode.A) then
+									delta_Y+=10
+								end
+
+								if UIS:IsKeyDown(Enum.KeyCode.D) then
+									delta_Y-=10
+								end
 							end
-							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X)
+							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X, delta_Y)
 							RunService.Heartbeat:Wait()
 						end
 					end

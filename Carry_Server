@@ -11,7 +11,6 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 	if Object then
 		if IsCarrying then
 			if not Object:FindFirstChild("Carry") then
-				Object:SetNetworkOwner(plr)
 				for i, part in pairs(Object:GetDescendants()) do
 					if part:IsA("BasePart") then
 						part.CollisionGroup = "SelfUncollide"
@@ -40,6 +39,8 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 				-- Calculate and store the initial orientation offset
 				initialCamCFrame = camCFrame
 				initialOrientation = Object.CFrame
+				Object.Anchored = false
+				Object:SetNetworkOwner(plr)
 			else
 				Carry = Object:FindFirstChild("Carry")
 				Carry_Orientation = Object:FindFirstChild("Carry_Orientation")

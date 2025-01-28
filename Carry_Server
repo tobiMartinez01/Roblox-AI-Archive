@@ -40,14 +40,13 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 				-- Calculate and store the initial orientation offset
 				initialCamCFrame = camCFrame
 				initialOrientation = Object.CFrame
-				initialOrientationOffset = initialCamCFrame:ToObjectSpace(initialOrientation)
 			else
 				Carry = Object:FindFirstChild("Carry")
 				Carry_Orientation = Object:FindFirstChild("Carry_Orientation")
 			end
 			Carry.Position = camPos
 			-- Apply the initial orientation offset relative to the current camera orientation
-			Carry_Orientation.CFrame = camCFrame * (initialOrientationOffset) * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0)
+			Carry_Orientation.CFrame = camCFrame * ((initialCamCFrame * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0)):ToObjectSpace(initialOrientation))
 		else
 			Carry:Destroy()
 			Carry_Orientation:Destroy()

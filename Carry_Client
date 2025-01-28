@@ -43,30 +43,25 @@ UIS.InputBegan:Connect(function(input, isChatting)
 						local delta_Y = 0
 						while IsCarrying do
 							local camCFrame = camera.CFrame
-							local keyPressed
 							camPos = camCFrame.Position + (camCFrame.LookVector * limitDistance)
 							if isRotating then
 								if UIS:IsKeyDown(Enum.KeyCode.W) then
 									delta_X+=10
-									keyPressed = "W"
 								end
 
 								if UIS:IsKeyDown(Enum.KeyCode.S) then
 									delta_X-=10
-									keyPressed = "S"
 								end
 
 								if UIS:IsKeyDown(Enum.KeyCode.A) then
 									delta_Y+=10
-									keyPressed = "A"
 								end
 
 								if UIS:IsKeyDown(Enum.KeyCode.D) then
 									delta_Y-=10
-									keyPressed = "D"
 								end
 							end
-							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X, delta_Y, keyPressed)
+							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X, delta_Y)
 							RunService.Heartbeat:Wait()
 						end
 					end

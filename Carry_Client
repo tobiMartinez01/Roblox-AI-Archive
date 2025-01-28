@@ -12,7 +12,7 @@ local RunService = game:GetService("RunService")
 local function findCarriableAncestor(target)
 	local current = target
 	while current do
-		if current:GetAttribute("CanBeCarried") then
+		if current:GetAttribute("CanBeCarried") == true or current:GetAttribute("CanBeCarried") == false then
 			if current:IsA("Model") then
 				return current.PrimaryPart
 			else
@@ -48,11 +48,11 @@ UIS.InputBegan:Connect(function(input, isChatting)
 								if UIS:IsKeyDown(Enum.KeyCode.W) then
 									delta_X+=10
 								end
-								
+
 								if UIS:IsKeyDown(Enum.KeyCode.S) then
 									delta_X-=10
 								end
-								
+
 								if UIS:IsKeyDown(Enum.KeyCode.A) then
 									delta_Y+=10
 								end

@@ -2,21 +2,24 @@ local events = game.ReplicatedStorage.Events
 local carry_event = events.Carry
 local Carry
 local Carry_Orientation
-local Orientation
 local Attachment0
+local initialCamCFrame
+local initialOrientation
+local initialOrientationOffset
+
 carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame, delta_X)
 	if Object then
 		if IsCarrying then
-			if not Object.PrimaryPart:FindFirstChild("Carry") then
-				Object.PrimaryPart:SetNetworkOwner(plr)
+			if not Object:FindFirstChild("Carry") then
+				Object:SetNetworkOwner(plr)
 				for i, part in pairs(Object:GetDescendants()) do
 					if part:IsA("BasePart") then
 						part.CollisionGroup = "SelfUncollide"
 					end
 				end
-				Carry = Instance.new("AlignPosition", Object.PrimaryPart)
-				Carry_Orientation = Instance.new("AlignOrientation", Object.PrimaryPart)
-				Attachment0 = Instance.new("Attachment", Object.PrimaryPart)
+				Carry = Instance.new("AlignPosition", Object)
+				Carry_Orientation = Instance.new("AlignOrientation", Object)
+				Attachment0 = Instance.new("Attachment", Object)
 				Attachment0.Name = "Carry_Attachment0"
 				Carry.Name = "Carry"
 				Carry.MaxForce = 10^6
@@ -24,8 +27,6 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 				Carry.Responsiveness = 100
 				Carry.ApplyAtCenterOfMass = true
 				Carry.Mode = Enum.PositionAlignmentMode.OneAttachment
-
-				Orientation = (Object.PrimaryPart.CFrame - Object.PrimaryPart.CFrame.Position)
 
 				Carry_Orientation.Name = "Carry_Orientation"
 				Carry_Orientation.MaxTorque = 10^6
@@ -35,15 +36,20 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 
 				Carry.Attachment0 = Attachment0
 				Carry_Orientation.Attachment0 = Attachment0
+
+				-- Calculate and store the initial orientation offset
+				initialCamCFrame = camCFrame
+				initialOrientation = Object.CFrame
+				initialOrientationOffset = initialCamCFrame:ToObjectSpace(initialOrientation)
 			else
-				Carry = Object.PrimaryPart:FindFirstChild("Carry")
-				Carry_Orientation = Object.PrimaryPart:FindFirstChild("Carry_Orientation")
+				Carry = Object:FindFirstChild("Carry")
+				Carry_Orientation = Object:FindFirstChild("Carry_Orientation")
 			end
 			Carry.Position = camPos
-			local camAngles = camCFrame - camCFrame.Position
-			Carry_Orientation.CFrame = CFrame.new(Carry_Orientation.CFrame.Position) * camAngles * Orientation
+			-- Apply the initial orientation offset relative to the current camera orientation
+			Carry_Orientation.CFrame = camCFrame:ToWorldSpace(initialOrientationOffset)
 		else
-			Object.PrimaryPart:SetNetworkOwner(nil)
+			Object:SetNetworkOwner(nil)
 			Carry:Destroy()
 			Carry_Orientation:Destroy()
 			Attachment0:Destroy()

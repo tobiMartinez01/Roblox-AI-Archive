@@ -47,11 +47,11 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame
 			end
 			Carry.Position = camPos
 			-- Apply the initial orientation offset relative to the current camera orientation
-			Carry_Orientation.CFrame = camCFrame:ToWorldSpace(initialOrientationOffset)
+			Carry_Orientation.CFrame = camCFrame * initialOrientationOffset
 		else
-			Object:SetNetworkOwner(nil)
 			Carry:Destroy()
 			Carry_Orientation:Destroy()
+			Object:SetNetworkOwner(nil)
 			Attachment0:Destroy()
 			for i, part in pairs(Object:GetDescendants()) do
 				if part:IsA("BasePart") then

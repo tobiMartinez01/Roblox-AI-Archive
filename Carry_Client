@@ -12,8 +12,12 @@ local RunService = game:GetService("RunService")
 local function findCarriableAncestor(target)
 	local current = target
 	while current do
-		if current:IsA("Model") and current:GetAttribute("CanBeCarried") then
-			return current
+		if current:GetAttribute("CanBeCarried") then
+			if current:IsA("Model") then
+				return current.PrimaryPart
+			else
+				return current
+			end
 		end
 		current = current.Parent
 	end
@@ -33,7 +37,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				Target = mouse.Target
 				Target = findCarriableAncestor(Target)
 				if Target then
-					if (Target.PrimaryPart.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
+					if (Target.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
 						IsCarrying = true
 						local delta_X = 0
 						while IsCarrying do
@@ -42,6 +46,10 @@ UIS.InputBegan:Connect(function(input, isChatting)
 							if isRotating then
 								if UIS:IsKeyDown(Enum.KeyCode.W) then
 									delta_X+=10
+								end
+								
+								if UIS:IsKeyDown(Enum.KeyCode.S) then
+									delta_X-=10
 								end
 							end
 							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X)

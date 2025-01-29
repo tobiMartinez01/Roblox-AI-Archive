@@ -20,9 +20,23 @@ local function HasAlignPosition(Object)
 	end
 end
 
-carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame)
+local function findModelThroughPrimaryPart(primarypart)
+	local current = primarypart
+	while current do
+		if current:IsA("Model") then
+			if current.PrimaryPart == primarypart then
+				return current
+			end
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
+carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame, initialCameraCFrame, initialOrientation)
 	if IsCarrying then
 		local AlignPosition
+		local AlignOrientation
 		local Object_
 		
 		if Object:IsA("Model") then
@@ -34,7 +48,16 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame)
 			end
 		else
 			Object_ = Object
-			Object.CollisionGroup = "SelfUncollide"
+			local model = findModelThroughPrimaryPart(Object)
+			if model then
+				for i, part in pairs(model:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CollisionGroup = "SelfUncollide"
+					end
+				end
+			else
+				Object.CollisionGroup = "SelfUncollide"
+			end
 		end
 		
 		if not HasAlignPosition(Object) then
@@ -45,11 +68,21 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame)
 			AlignPosition.MaxForce = 10^5
 			AlignPosition.MaxVelocity = math.huge
 			AlignPosition.Responsiveness = 100
+			
+			AlignOrientation = Instance.new("AlignOrientation", Object_)
+			AlignOrientation.Name = "IsCarrying_Orientation"
+			AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+			AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
+			AlignOrientation.MaxTorque = 10^5
+			AlignOrientation.MaxAngularVelocity = math.huge
+			AlignOrientation.Responsiveness = 100
 			Object_:SetNetworkOwner(plr)
 		else
 			AlignPosition = Object_:FindFirstChild("IsCarrying")
+			AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
 		end
 		AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * limitDistance
+		AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
 	else
 		local Object_
 		if Object:IsA("Model") then
@@ -65,6 +98,7 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame)
 		end
 		coroutine.wrap(function()
 			Object_:FindFirstChild("IsCarrying"):Destroy()
+			Object_:FindFirstChild("IsCarrying_Orientation"):Destroy()
 			task.wait()
 			--local checkpoint = tick()
 			while task.wait(0.2) do

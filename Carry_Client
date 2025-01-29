@@ -78,35 +78,36 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				IsCarrying = true
 				local initialCameraCFrame = CurrentCamera.CFrame
 				local initialOrientation
-				local delta_X = 0
-				local delta_Y = 0
 				if Object:IsA("Model") then
 					initialOrientation = Object.PrimaryPart.CFrame
 				else
 					initialOrientation = Object.CFrame
 				end
 				while IsCarrying do
+					local delta_X = 0
+					local delta_Y = 0
 					local camCFrame = CurrentCamera.CFrame
 					if IsRotating == true then
 						if UIS:IsKeyDown(Enum.KeyCode.W) then
-							delta_X+=10
+							delta_X=10
 						end
 						if UIS:IsKeyDown(Enum.KeyCode.S) then
-							delta_X-=10
+							delta_X=-10
 						end
 						if UIS:IsKeyDown(Enum.KeyCode.A) then
-							delta_Y-=10
+							delta_Y=10
 						end
 						if UIS:IsKeyDown(Enum.KeyCode.D) then
-							delta_Y+=10
+							delta_Y=-10
 						end
 					end
-					carry_event:InvokeServer(true, Object, camCFrame, initialCameraCFrame * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0), initialOrientation)
+					initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0)
+					carry_event:InvokeServer(true, Object, camCFrame, initialCameraCFrame, initialOrientation)
 				end
 			end
 		end
 	end
-	
+
 	if input.UserInputType == Enum.UserInputType.MouseButton2 and Object then
 		Controls:Disable()
 		IsRotating = true
@@ -120,7 +121,7 @@ UIS.InputEnded:Connect(function(input, isChatting)
 		carry_event:InvokeServer(false, Object, camCFrame)
 		Object = nil
 	end
-	
+
 	if input.UserInputType == Enum.UserInputType.MouseButton2 then
 		Controls:Enable()
 		IsRotating = false

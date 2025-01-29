@@ -5,18 +5,42 @@ local carry_event = events.Carry
 
 local UIS = game:GetService("UserInputService")
 local localPlayer = game.Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local CurrentCamera = workspace.CurrentCamera
 local mouse = localPlayer:GetMouse()
 local RunService = game:GetService("RunService")
+
+local CarryPoint
+local AlignPosition
+local Object
+
+local limitDistance = 6
+local ping
 
 local function findCarriableAncestor(target)
 	local current = target
 	while current do
-		if current:GetAttribute("CanBeCarried") == true or current:GetAttribute("CanBeCarried") == false then
-			if current:IsA("Model") then
-				return current.PrimaryPart
-			else
-				return current
+		if current:IsA("BasePart") then
+			if current:FindFirstChild("CarryPoint") then
+				if current:FindFirstChild("CarryPoint"):IsA("Attachment") then
+					CarryPoint = current:FindFirstChild("CarryPoint")
+					return current
+				else
+					warn("CarryPoint must be an Attachment!")
+					return nil
+				end
+			end
+		elseif current:IsA("Model") then
+			local primarypart = current.PrimaryPart
+			if primarypart then
+				if primarypart:FindFirstChild("CarryPoint") then
+					if primarypart:FindFirstChild("CarryPoint"):IsA("Attachment") then
+						CarryPoint = primarypart:FindFirstChild("CarryPoint")
+						return current
+					else
+						warn("CarryPoint must be an Attachment!")
+						return nil
+					end
+				end
 			end
 		end
 		current = current.Parent
@@ -24,74 +48,46 @@ local function findCarriableAncestor(target)
 	return nil
 end
 
-local limitDistance = 6
-
-local IsCarrying = false
-local isRotating = false
-local Target
-local camPos
-UIS.InputBegan:Connect(function(input, isChatting)
-	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if IsCarrying == false then
-			if mouse.Target then
-				Target = mouse.Target
-				Target = findCarriableAncestor(Target)
-				if Target then
-					if (Target.CFrame.Position - camera.CFrame.Position).Magnitude < limitDistance then
-						IsCarrying = true
-						local delta_X = 0
-						local delta_Y = 0
-						while IsCarrying do
-							local camCFrame = camera.CFrame
-							camPos = camCFrame.Position + (camCFrame.LookVector * limitDistance)
-							if isRotating then
-								if UIS:IsKeyDown(Enum.KeyCode.W) then
-									delta_X+=10
-								end
-
-								if UIS:IsKeyDown(Enum.KeyCode.S) then
-									delta_X-=10
-								end
-
-								if UIS:IsKeyDown(Enum.KeyCode.A) then
-									delta_Y+=10
-								end
-
-								if UIS:IsKeyDown(Enum.KeyCode.D) then
-									delta_Y-=10
-								end
-							end
-							carry_event:InvokeServer(IsCarrying, Target, camPos, camCFrame, delta_X, delta_Y)
-							RunService.Heartbeat:Wait()
-						end
-					end
-				end
-			end
+local function Carrying(Object)
+	if Object:IsA("Model") then
+		if Object.PrimaryPart.CollisionGroup == "SelfUncollide" then
+			return true
+		else
+			return false
+		end
+	else
+		if Object.CollisionGroup == "SelfUncollide" then
+			return true
+		else
+			return false
 		end
 	end
+end
 
-	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton2 then
-		if IsCarrying == true then
-			isRotating = true
-			require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls():Disable()
+local IsCarrying = false
+
+UIS.InputBegan:Connect(function(input, isChatting)
+	if isChatting then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object == nil then
+		local Target = mouse.Target
+		Object = findCarriableAncestor(Target)
+		if Object then
+			if Carrying(Object) == false then
+				IsCarrying = true
+				while IsCarrying do
+					local camCFrame = CurrentCamera.CFrame
+					carry_event:InvokeServer(true, Object, camCFrame)
+				end
+			end
 		end
 	end
 end)
 
 UIS.InputEnded:Connect(function(input, isChatting)
-	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if IsCarrying == true then
-			IsCarrying = false
-			isRotating = false
-			require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls():Enable()
-			carry_event:InvokeServer(IsCarrying, Target, camPos, delta)
-		end
-	end
-
-	if not isChatting and input.UserInputType == Enum.UserInputType.MouseButton2 then
-		if IsCarrying == true then
-			isRotating = false
-			require(game.Players.LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls():Enable()
-		end
+	if isChatting then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object then 
+		IsCarrying = false
+		carry_event:InvokeServer(false, Object, camCFrame)
+		Object = nil
 	end
 end)

@@ -74,9 +74,16 @@ UIS.InputBegan:Connect(function(input, isChatting)
 		if Object then
 			if Carrying(Object) == false then
 				IsCarrying = true
+				local initialCameraCFrame = CurrentCamera.CFrame
+				local initialOrientation
+				if Object:IsA("Model") then
+					initialOrientation = Object.PrimaryPart.CFrame
+				else
+					initialOrientation = Object.CFrame
+				end
 				while IsCarrying do
 					local camCFrame = CurrentCamera.CFrame
-					carry_event:InvokeServer(true, Object, camCFrame)
+					carry_event:InvokeServer(true, Object, camCFrame, initialCameraCFrame, initialOrientation)
 				end
 			end
 		end

@@ -15,7 +15,6 @@ local AlignPosition
 local Object
 
 local limitDistance = 6
-local ping
 
 local function findCarriableAncestor(target)
 	local current = target

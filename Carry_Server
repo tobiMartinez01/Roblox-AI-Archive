@@ -1,63 +1,85 @@
 local events = game.ReplicatedStorage.Events
 local carry_event = events.Carry
-local Carry
-local Carry_Orientation
-local Attachment0
-local initialCamCFrame
-local initialOrientation
-local initialOrientationOffset
 
-carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camPos, camCFrame, delta_X, delta_Y)
-	if Object then
-		if IsCarrying then
-			if not Object:FindFirstChild("Carry") then
-				for i, part in pairs(Object:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CollisionGroup = "SelfUncollide"
-					end
-				end
-				Carry = Instance.new("AlignPosition", Object)
-				Carry_Orientation = Instance.new("AlignOrientation", Object)
-				Attachment0 = Instance.new("Attachment", Object)
-				Attachment0.Name = "Carry_Attachment0"
-				Carry.Name = "Carry"
-				Carry.MaxForce = 10^6
-				Carry.MaxVelocity = math.huge
-				Carry.Responsiveness = 100
-				Carry.ApplyAtCenterOfMass = true
-				Carry.Mode = Enum.PositionAlignmentMode.OneAttachment
+local limitDistance = 6
 
-				Carry_Orientation.Name = "Carry_Orientation"
-				Carry_Orientation.MaxTorque = 10^6
-				Carry_Orientation.MaxAngularVelocity = math.huge
-				Carry_Orientation.Responsiveness = 50
-				Carry_Orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-
-				Carry.Attachment0 = Attachment0
-				Carry_Orientation.Attachment0 = Attachment0
-
-				-- Calculate and store the initial orientation offset
-				initialCamCFrame = camCFrame
-				initialOrientation = Object.CFrame
-				Object.Anchored = false
-				Object:SetNetworkOwner(plr)
-			else
-				Carry = Object:FindFirstChild("Carry")
-				Carry_Orientation = Object:FindFirstChild("Carry_Orientation")
-			end
-			Carry.Position = camPos
-			-- Apply the initial orientation offset relative to the current camera orientation
-			Carry_Orientation.CFrame = (camCFrame * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0)) * ((initialCamCFrame):ToObjectSpace(initialOrientation))
+local function HasAlignPosition(Object)
+	if Object:IsA("Model") then
+		local primarypart = Object.PrimaryPart
+		if primarypart:FindFirstChild("IsCarrying") then
+			return true
 		else
-			Carry:Destroy()
-			Carry_Orientation:Destroy()
-			Object:SetNetworkOwner(nil)
-			Attachment0:Destroy()
+			return false
+		end
+	else
+		if Object:FindFirstChild("IsCarrying") then
+			return true
+		else
+			return false
+		end
+	end
+end
+
+carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame)
+	if IsCarrying then
+		local AlignPosition
+		local Object_
+		
+		if Object:IsA("Model") then
+			Object_ = Object.PrimaryPart
+			for i, part in pairs(Object:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CollisionGroup = "SelfUncollide"
+				end
+			end
+		else
+			Object_ = Object
+			Object.CollisionGroup = "SelfUncollide"
+		end
+		
+		if not HasAlignPosition(Object) then
+			AlignPosition = Instance.new("AlignPosition", Object_)
+			AlignPosition.Name = "IsCarrying"
+			AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+			AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
+			AlignPosition.MaxForce = 10^5
+			AlignPosition.MaxVelocity = math.huge
+			AlignPosition.Responsiveness = 100
+			Object_:SetNetworkOwner(plr)
+		else
+			AlignPosition = Object_:FindFirstChild("IsCarrying")
+		end
+		AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * limitDistance
+	else
+		local Object_
+		if Object:IsA("Model") then
+			Object_ = Object.PrimaryPart
 			for i, part in pairs(Object:GetDescendants()) do
 				if part:IsA("BasePart") then
 					part.CollisionGroup = "Default"
 				end
 			end
+		else
+			Object_ = Object
+			Object.CollisionGroup = "Default"
 		end
+		coroutine.wrap(function()
+			Object_:FindFirstChild("IsCarrying"):Destroy()
+			task.wait()
+			--local checkpoint = tick()
+			while task.wait(0.2) do
+				local velocity = Object_.Velocity.Magnitude
+				--If lag detector not work then use "tick() - checkpoint >= 5" as a timeout
+				if velocity < 0.01 or Object_:FindFirstChild("IsCarrying") or Object_:GetNetworkOwner() == nil then
+					if not Object_:FindFirstChild("IsCarrying") then
+						Object_:SetNetworkOwner(nil)
+						print("boom", velocity)
+					else
+						print("interfered")
+					end
+					break
+				end
+			end
+		end)()
 	end
 end

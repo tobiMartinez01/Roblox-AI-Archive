@@ -104,7 +104,7 @@ end
 
 UIS.InputBegan:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and not IsCarrying then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and not Object_ then
 		local Target = mouse.Target
 		Object = findCarriableAncestor(Target)
 		if Object then
@@ -114,7 +114,6 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				Object_ = Object
 			end
 			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
-				carry_event:InvokeServer(true, Object_)
 				IsCarrying = true
 				local initialCameraCFrame = CurrentCamera.CFrame
 				local initialOrientation
@@ -124,7 +123,30 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					initialOrientation = Object.CFrame
 				end
 
-				local drag; drag = RunService.RenderStepped:Connect(function(dt)
+				carry_event:InvokeServer(true, Object_)
+				
+				if not HasAlignPosition(Object) then
+					AlignPosition = Instance.new("AlignPosition", Object_)
+					AlignPosition.Name = "IsCarrying"
+					AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+					AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
+					AlignPosition.MaxForce = 10^5
+					AlignPosition.MaxVelocity = math.huge
+					AlignPosition.Responsiveness = 100
+
+					AlignOrientation = Instance.new("AlignOrientation", Object_)
+					AlignOrientation.Name = "IsCarrying_Orientation"
+					AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+					AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
+					AlignOrientation.MaxTorque = 10^5
+					AlignOrientation.MaxAngularVelocity = math.huge
+					AlignOrientation.Responsiveness = 100
+				else
+					AlignPosition = Object_:FindFirstChild("IsCarrying")
+					AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
+				end
+
+				local drag; drag = RunService.Heartbeat:Connect(function(dt)
 					if IsCarrying then
 						local fpscap = dt*30
 						local delta_X = 0
@@ -147,27 +169,6 @@ UIS.InputBegan:Connect(function(input, isChatting)
 
 						initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X*fpscap), math.rad(delta_Y*fpscap), 0)
 
-						if not HasAlignPosition(Object) then
-							AlignPosition = Instance.new("AlignPosition", Object_)
-							AlignPosition.Name = "IsCarrying"
-							AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-							AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
-							AlignPosition.MaxForce = 10^5
-							AlignPosition.MaxVelocity = math.huge
-							AlignPosition.Responsiveness = 100
-
-							AlignOrientation = Instance.new("AlignOrientation", Object_)
-							AlignOrientation.Name = "IsCarrying_Orientation"
-							AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-							AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
-							AlignOrientation.MaxTorque = 10^5
-							AlignOrientation.MaxAngularVelocity = math.huge
-							AlignOrientation.Responsiveness = 100
-						else
-							AlignPosition = Object_:FindFirstChild("IsCarrying")
-							AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
-						end
-
 						AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * holdDistance
 						AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
 					else
@@ -181,7 +182,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 		end
 	end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and IsCarrying then
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and Object_ then
 		Controls:Disable()
 		IsRotating = true
 	end
@@ -189,13 +190,13 @@ end)
 
 UIS.InputEnded:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and IsCarrying then 
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object_ then 
 		Controls:Enable()
+		IsCarrying = false
+		IsRotating = false
 		AlignPosition:Destroy()
 		AlignOrientation:Destroy()
 		carry_event:InvokeServer(false, Object_)
-		IsCarrying = false
-		IsRotating = false
 		Object = nil
 		Object_ = nil
 	end

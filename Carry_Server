@@ -37,32 +37,28 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 			Object_:SetNetworkOwner(plr)
 		end
 		
-		if Object_.CollisionGroup ~= "SelfUncollide" then
 			local model = findModelThroughPrimaryPart(Object_)
 
-			if model then
-				for i, part in pairs(model:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CollisionGroup = "SelfUncollide"
-					end
+		if model then
+			for i, part in pairs(model:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CollisionGroup = "SelfUncollide"
 				end
-			else
-				Object_.CollisionGroup = "SelfUncollide"
 			end
+		else
+			Object_.CollisionGroup = "SelfUncollide"
 		end
 	else
-		if Object_.CollisionGroup ~= "Default" then
-			local model = findModelThroughPrimaryPart(Object_)
+		local model = findModelThroughPrimaryPart(Object_)
 
-			if model then
-				for i, part in pairs(model:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CollisionGroup = "Default"
-					end
+		if model then
+			for i, part in pairs(model:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CollisionGroup = "Default"
 				end
-			else
-				Object_.CollisionGroup = "Default"
 			end
+		else
+			Object_.CollisionGroup = "Default"
 		end
 
 		coroutine.wrap(function()

@@ -70,8 +70,11 @@ end)
 
 path_cycles[current_point]:SetAttribute("Unavailable", true)
 
+local first_time = true
+
 RunService.Heartbeat:Connect(function()
-	if tick() - last_tick >= debounce then
+	if tick() - last_tick >= debounce or first_time == true then
+		first_time = false
 		path:Run(path_cycles[current_point].Position)
 		local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2), raycastParams)
 		if jump then

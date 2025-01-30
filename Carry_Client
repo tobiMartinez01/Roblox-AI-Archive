@@ -21,8 +21,8 @@ local AlignPosition
 local IsCarrying = false
 local IsRotating = false
 
-local pickupDistance = 6
-local holdDistance = 3
+local pickupDistance = 5
+local holdDistance = 5
 
 local function HasAlignPosition(Object)
 	if Object:IsA("Model") then

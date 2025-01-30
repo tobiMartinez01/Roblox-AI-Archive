@@ -21,8 +21,8 @@ local AlignPosition
 local IsCarrying = false
 local IsRotating = false
 
-local pickupDistance = 5
-local holdDistance = 5
+local pickupDistance = 6
+local holdDistance = 6
 
 local function HasAlignPosition(Object)
 	if Object:IsA("Model") then
@@ -169,7 +169,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 								AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
 							end
 
-							AlignPosition.Position = camCFrame.Position + camCFrame.RightVector*2 + camCFrame.LookVector * holdDistance
+							AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * holdDistance
 							AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
 						else
 							drag:Disconnect()

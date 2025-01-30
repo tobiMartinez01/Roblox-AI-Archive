@@ -24,16 +24,16 @@ local IsRotating = false
 local pickupDistance = 6
 local holdDistance = 6
 
-local function HasAlignPosition(Object)
-	if Object:IsA("Model") then
-		local primarypart = Object.PrimaryPart
+local function HasAlignPosition(obj)
+	if obj:IsA("Model") then
+		local primarypart = obj.PrimaryPart
 		if primarypart:FindFirstChild("IsCarrying") then
 			return true
 		else
 			return false
 		end
 	else
-		if Object:FindFirstChild("IsCarrying") then
+		if obj:FindFirstChild("IsCarrying") then
 			return true
 		else
 			return false
@@ -131,7 +131,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
 					AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
 					AlignPosition.MaxForce = 10^5
-					AlignPosition.MaxVelocity = math.huge
+					AlignPosition.MaxVelocity = 100
 					AlignPosition.Responsiveness = 100
 
 					AlignOrientation = Instance.new("AlignOrientation", Object_)
@@ -139,7 +139,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
 					AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
 					AlignOrientation.MaxTorque = 10^5
-					AlignOrientation.MaxAngularVelocity = math.huge
+					AlignOrientation.MaxAngularVelocity = 100
 					AlignOrientation.Responsiveness = 100
 				else
 					AlignPosition = Object_:FindFirstChild("IsCarrying")

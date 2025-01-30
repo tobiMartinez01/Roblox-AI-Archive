@@ -59,17 +59,19 @@ path.Reached:Connect(function()
 	path_cycles[current_point]:SetAttribute("Unavailable", nil)
 	last_of_the_last_point = last_point
 	last_point = current_point
-	
+
 	if #path_cycles > 3 then
 		repeat
 			current_point = math.random(1, #path_cycles)
-		until current_point ~= last_point and current_point ~= last_of_the_last_point
+			task.wait(1)
+		until current_point ~= last_point and current_point ~= last_of_the_last_point and path_cycles[current_point]:GetAttribute("Unavailable") == nil
 	else
 		repeat
 			current_point = math.random(1, #path_cycles)
-		until current_point ~= last_point
+			task.wait(1)
+		until current_point ~= last_point and path_cycles[current_point]:GetAttribute("Unavailable") == nil
 	end
-	
+
 	if path_cycles[current_point]:GetAttribute("Unavailable") == nil then
 		path_cycles[current_point]:SetAttribute("Unavailable", true)
 		task.wait(debounce)

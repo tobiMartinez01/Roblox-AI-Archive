@@ -133,16 +133,16 @@ UIS.InputBegan:Connect(function(input, isChatting)
 							local camCFrame = CurrentCamera.CFrame
 							if IsRotating == true then
 								if UIS:IsKeyDown(Enum.KeyCode.W) then
-									delta_X=10
+									delta_X=1
 								end
 								if UIS:IsKeyDown(Enum.KeyCode.S) then
-									delta_X=-10
+									delta_X=-1
 								end
 								if UIS:IsKeyDown(Enum.KeyCode.A) then
-									delta_Y=10
+									delta_Y=1
 								end
 								if UIS:IsKeyDown(Enum.KeyCode.D) then
-									delta_Y=-10
+									delta_Y=-1
 								end
 							end
 

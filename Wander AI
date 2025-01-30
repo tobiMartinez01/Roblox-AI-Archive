@@ -44,12 +44,15 @@ local pathParams = {
 }
 
 local current_point = 1
+local debounce = 5 --Take a break!!!
+local last_tick = tick()
 
 local path, path_ = SimplePath.new(self, pathParams)
 --path.Visualize = true
 
 path.Reached:Connect(function()
 	path_cycles[current_point]:SetAttribute("Unavailable", nil)
+	last_tick = tick()
 	current_point+= 1
 	if path_cycles[current_point] then
 		if path_cycles[current_point]:GetAttribute("Unavailable") == nil then
@@ -68,36 +71,38 @@ end)
 path_cycles[current_point]:SetAttribute("Unavailable", true)
 
 RunService.Heartbeat:Connect(function()
-	path:Run(path_cycles[current_point].Position)
-	local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2), raycastParams)
-	if jump then
-		if not jump.Instance:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-			if jump.Instance.ClassName ~= "TrussPart" then
-				if jump.Instance.CanCollide == true then
-					if jump.Instance.Transparency ~= 1 then
-						local Part = jump.Instance
+	if tick() - last_tick >= debounce then
+		path:Run(path_cycles[current_point].Position)
+		local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2), raycastParams)
+		if jump then
+			if not jump.Instance:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+				if jump.Instance.ClassName ~= "TrussPart" then
+					if jump.Instance.CanCollide == true then
+						if jump.Instance.Transparency ~= 1 then
+							local Part = jump.Instance
 
-						local sides = {
-							front = Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
-							back = -Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
-							right = Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
-							left = -Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
-							up = Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
-							down = -Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
-						}
+							local sides = {
+								front = Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
+								back = -Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
+								right = Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
+								left = -Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
+								up = Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
+								down = -Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
+							}
 
-						local highestSurface = nil
-						local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+							local highestSurface = nil
+							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
 
-						for side, position in pairs(sides) do
-							if position.Y > highestY then
-								highestY = position.Y
-								highestSurface = side
+							for side, position in pairs(sides) do
+								if position.Y > highestY then
+									highestY = position.Y
+									highestSurface = side
+								end
 							end
-						end
 
-						if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-							humanoid.Jump = true
+							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+								humanoid.Jump = true
+							end
 						end
 					end
 				end

@@ -36,44 +36,44 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 		if Object_:GetNetworkOwner() ~= plr then
 			Object_:SetNetworkOwner(plr)
 		end
-		
+
+		if Object_.CollisionGroup ~= "SelfUncollide" then
 			local model = findModelThroughPrimaryPart(Object_)
 
-		if model then
-			for i, part in pairs(model:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CollisionGroup = "SelfUncollide"
+			if model then
+				for i, part in pairs(model:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CollisionGroup = "SelfUncollide"
+					end
 				end
+			else
+				Object_.CollisionGroup = "SelfUncollide"
 			end
-		else
-			Object_.CollisionGroup = "SelfUncollide"
 		end
 	else
-		local model = findModelThroughPrimaryPart(Object_)
+		if Object_.CollisionGroup ~= "Default" then
+			local model = findModelThroughPrimaryPart(Object_)
 
-		if model then
-			for i, part in pairs(model:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CollisionGroup = "Default"
+			if model then
+				for i, part in pairs(model:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CollisionGroup = "Default"
+					end
 				end
+			else
+				Object_.CollisionGroup = "Default"
 			end
-		else
-			Object_.CollisionGroup = "Default"
 		end
 
 		coroutine.wrap(function()
-			task.wait()
 			--local checkpoint = tick()
 			while task.wait(0.2) do
 				local velocity = Object_.Velocity.Magnitude
 				--If lag detector not work then use "tick() - checkpoint >= 5" as a timeout
-				if velocity < 0.01 or Object_.CollisionGroup == "SelfUncollide" or Object_:GetNetworkOwner() == nil then
+				if (velocity < 0.01 and Object_.CollisionGroup == "Default") or Object_.CollisionGroup == "SelfUncollide" then
 					--Check if Object is currently not being holding then set it back to server-side
 					if Object_.CollisionGroup == "Default" then
 						Object_:SetNetworkOwner(nil)
-						print("boom", velocity)
-					else
-						print("interfered")
 					end
 					break
 				end

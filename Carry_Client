@@ -113,70 +113,70 @@ UIS.InputBegan:Connect(function(input, isChatting)
 			else
 				Object_ = Object
 			end
-			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance then
-				if Carrying(Object) == false then
-					IsCarrying = true
-					local initialCameraCFrame = CurrentCamera.CFrame
-					local initialOrientation
-					if Object:IsA("Model") then
-						initialOrientation = Object.PrimaryPart.CFrame
-					else
-						initialOrientation = Object.CFrame
-					end
-
-					carry_event:InvokeServer(true, Object_)
-
-					local drag; drag = RunService.RenderStepped:Connect(function(dt)
-						if IsCarrying then
-							local fpscap = dt*30
-							local delta_X = 0
-							local delta_Y = 0
-							local camCFrame = CurrentCamera.CFrame
-							if IsRotating == true then
-								if UIS:IsKeyDown(Enum.KeyCode.W) then
-									delta_X=10
-								end
-								if UIS:IsKeyDown(Enum.KeyCode.S) then
-									delta_X=-10
-								end
-								if UIS:IsKeyDown(Enum.KeyCode.A) then
-									delta_Y=10
-								end
-								if UIS:IsKeyDown(Enum.KeyCode.D) then
-									delta_Y=-10
-								end
-							end
-
-							initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X*fpscap), math.rad(delta_Y*fpscap), 0)
-
-							if not HasAlignPosition(Object) then
-								AlignPosition = Instance.new("AlignPosition", Object_)
-								AlignPosition.Name = "IsCarrying"
-								AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-								AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
-								AlignPosition.MaxForce = 10^5
-								AlignPosition.MaxVelocity = math.huge
-								AlignPosition.Responsiveness = 100
-
-								AlignOrientation = Instance.new("AlignOrientation", Object_)
-								AlignOrientation.Name = "IsCarrying_Orientation"
-								AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-								AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
-								AlignOrientation.MaxTorque = 10^5
-								AlignOrientation.MaxAngularVelocity = math.huge
-								AlignOrientation.Responsiveness = 100
-							else
-								AlignPosition = Object_:FindFirstChild("IsCarrying")
-								AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
-							end
-
-							AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * holdDistance
-							AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
-						else
-							drag:Disconnect()
-						end
-					end)
+			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
+				carry_event:InvokeServer(true, Object_)
+				IsCarrying = true
+				local initialCameraCFrame = CurrentCamera.CFrame
+				local initialOrientation
+				if Object:IsA("Model") then
+					initialOrientation = Object.PrimaryPart.CFrame
+				else
+					initialOrientation = Object.CFrame
 				end
+
+				local drag; drag = RunService.RenderStepped:Connect(function(dt)
+					if IsCarrying then
+						local fpscap = dt*30
+						local delta_X = 0
+						local delta_Y = 0
+						local camCFrame = CurrentCamera.CFrame
+						if IsRotating == true then
+							if UIS:IsKeyDown(Enum.KeyCode.W) then
+								delta_X=10
+							end
+							if UIS:IsKeyDown(Enum.KeyCode.S) then
+								delta_X=-10
+							end
+							if UIS:IsKeyDown(Enum.KeyCode.A) then
+								delta_Y=10
+							end
+							if UIS:IsKeyDown(Enum.KeyCode.D) then
+								delta_Y=-10
+							end
+						end
+
+						initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X*fpscap), math.rad(delta_Y*fpscap), 0)
+
+						if not HasAlignPosition(Object) then
+							AlignPosition = Instance.new("AlignPosition", Object_)
+							AlignPosition.Name = "IsCarrying"
+							AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+							AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
+							AlignPosition.MaxForce = 10^5
+							AlignPosition.MaxVelocity = math.huge
+							AlignPosition.Responsiveness = 100
+
+							AlignOrientation = Instance.new("AlignOrientation", Object_)
+							AlignOrientation.Name = "IsCarrying_Orientation"
+							AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+							AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
+							AlignOrientation.MaxTorque = 10^5
+							AlignOrientation.MaxAngularVelocity = math.huge
+							AlignOrientation.Responsiveness = 100
+						else
+							AlignPosition = Object_:FindFirstChild("IsCarrying")
+							AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
+						end
+
+						AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * holdDistance
+						AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
+					else
+						drag:Disconnect()
+					end
+				end)
+			else
+				Object = nil
+				Object_ = nil
 			end
 		end
 	end

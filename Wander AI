@@ -76,7 +76,7 @@ RunService.Heartbeat:Connect(function()
 	if tick() - last_tick >= debounce or first_time == true then
 		first_time = false
 		path:Run(path_cycles[current_point].Position)
-		local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2), raycastParams)
+		local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2+0.1), raycastParams)
 		if jump then
 			if not jump.Instance:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
 				if jump.Instance.ClassName ~= "TrussPart" then

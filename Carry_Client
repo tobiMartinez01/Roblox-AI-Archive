@@ -102,9 +102,12 @@ local function Carrying(Object)
 	end
 end
 
+local last_tick = tick()
+local debounce = 0.1
+
 UIS.InputBegan:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and not Object_ then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and not Object_ and not IsCarrying then
 		local Target = mouse.Target
 		Object = findCarriableAncestor(Target)
 		if Object then
@@ -115,6 +118,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 			end
 			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
 				IsCarrying = true
+				last_tick = tick()
 				local initialCameraCFrame = CurrentCamera.CFrame
 				local initialOrientation
 				if Object:IsA("Model") then
@@ -131,7 +135,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
 					AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
 					AlignPosition.MaxForce = 10^5
-					AlignPosition.MaxVelocity = 100
+					AlignPosition.MaxVelocity = math.huge
 					AlignPosition.Responsiveness = 100
 
 					AlignOrientation = Instance.new("AlignOrientation", Object_)
@@ -139,7 +143,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
 					AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
 					AlignOrientation.MaxTorque = 10^5
-					AlignOrientation.MaxAngularVelocity = 100
+					AlignOrientation.MaxAngularVelocity = math.huge
 					AlignOrientation.Responsiveness = 100
 				else
 					AlignPosition = Object_:FindFirstChild("IsCarrying")
@@ -182,7 +186,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 		end
 	end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and Object_ then
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and Object_ and IsCarrying then
 		Controls:Disable()
 		IsRotating = true
 	end
@@ -190,7 +194,10 @@ end)
 
 UIS.InputEnded:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object_ then 
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object_ and IsCarrying then 
+		repeat
+			task.wait()
+		until tick() - last_tick >= debounce
 		Controls:Enable()
 		IsCarrying = false
 		IsRotating = false

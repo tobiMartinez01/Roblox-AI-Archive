@@ -1,8 +1,6 @@
 local events = game.ReplicatedStorage.Events
 local carry_event = events.Carry
 
-local limitDistance = 6
-
 local function HasAlignPosition(Object)
 	if Object:IsA("Model") then
 		local primarypart = Object.PrimaryPart

@@ -126,7 +126,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 
 					carry_event:InvokeServer(true, Object_)
 
-					local drag; drag = RunService.Heartbeat:Connect(function(dt)
+					local drag; drag = RunService.RenderStepped:Connect(function(dt)
 						if IsCarrying then
 							local fpscap = dt*30
 							local delta_X = 0

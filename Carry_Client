@@ -124,7 +124,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				end
 
 				carry_event:InvokeServer(true, Object_)
-				
+
 				if not HasAlignPosition(Object) then
 					AlignPosition = Instance.new("AlignPosition", Object_)
 					AlignPosition.Name = "IsCarrying"
@@ -146,7 +146,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
 				end
 
-				local drag; drag = RunService.Heartbeat:Connect(function(dt)
+				local drag; drag = RunService.RenderStepped:Connect(function(dt)
 					if IsCarrying then
 						local fpscap = dt*30
 						local delta_X = 0

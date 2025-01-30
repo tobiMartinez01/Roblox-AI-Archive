@@ -190,12 +190,12 @@ end)
 UIS.InputEnded:Connect(function(input, isChatting)
 	if isChatting then return end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 and IsCarrying then 
-		IsCarrying = false
-		IsRotating = false
 		Controls:Enable()
 		AlignPosition:Destroy()
 		AlignOrientation:Destroy()
 		carry_event:InvokeServer(false, Object_)
+		IsCarrying = false
+		IsRotating = false
 		Object = nil
 		Object_ = nil
 	end

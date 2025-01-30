@@ -1,4 +1,4 @@
-local path_cycles = workspace.Paths["Bricktopia Bay"].Raccoon:GetChildren()
+local path_cycles = workspace.Paths["Bricktopia Bay"].Raccoon
 local self = script.Parent
 local target
 local humanoid = self.Humanoid
@@ -32,10 +32,11 @@ local pathParams = {
 	AgentCanJump = true,
 	AgentCanClimb = true,
 	--AgentRadius = 2, --Changing this can cause the agent to not running correctly
-	--WaypointSpacing = 1,
+	WaypointSpacing = 1.5,
 	Costs = {
 		-- Smaller = higher priority
 		Climb = 1,
+		Blocked_For_Raccoons = math.huge,
 		Blocked = math.huge
 	},
 	PathSettings = {
@@ -43,69 +44,72 @@ local pathParams = {
 	}
 }
 
-local current_point = 1
-local debounce = 5 --Take a break!!!
-local last_tick = tick()
-
 local path, path_ = SimplePath.new(self, pathParams)
 --path.Visualize = true
 
+local current_point = 1
+path_cycles:FindFirstChild(tostring(current_point)):SetAttribute("Unavailable", true)
+path:Run(path_cycles:FindFirstChild(tostring(current_point)).Position)
+
+local debounce = 5 --Take a break!!!
+
 path.Reached:Connect(function()
-	path_cycles[current_point]:SetAttribute("Unavailable", nil)
-	last_tick = tick()
-	current_point+= 1
-	if path_cycles[current_point] then
-		if path_cycles[current_point]:GetAttribute("Unavailable") == nil then
-			path_cycles[current_point]:SetAttribute("Unavailable", true)
-		end
-	else
-		current_point = 1	
-		return
+	path_cycles:FindFirstChild(tostring(current_point)):SetAttribute("Unavailable", nil)
+	
+	current_point+=1
+	if current_point > #path_cycles:GetChildren() then
+		current_point = 1
+	end
+
+	if path_cycles:FindFirstChild(tostring(current_point)):GetAttribute("Unavailable") == nil then
+		path_cycles:FindFirstChild(tostring(current_point)):SetAttribute("Unavailable", true)
+		task.wait(debounce)
+		path:Run(path_cycles:FindFirstChild(tostring(current_point)).Position)
 	end
 end)
 
 path.Blocked:Connect(function()
-	humanoid.Jump = true
+	path:Run(path_cycles:FindFirstChild(tostring(current_point)).Position)
 end)
 
-path_cycles[current_point]:SetAttribute("Unavailable", true)
+path.Error:Connect(function()
+	path:Run(path_cycles:FindFirstChild(tostring(current_point)).Position)
+end)
 
-local first_time = true
+path.WaypointReached:Connect(function()
+	path:Run(path_cycles:FindFirstChild(tostring(current_point)).Position)
+end)
 
 RunService.Heartbeat:Connect(function()
-	if tick() - last_tick >= debounce or first_time == true then
-		first_time = false
-		path:Run(path_cycles[current_point].Position)
-		local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2+0.1), raycastParams)
-		if jump then
-			if not jump.Instance:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-				if jump.Instance.ClassName ~= "TrussPart" then
-					if jump.Instance.CanCollide == true then
-						if jump.Instance.Transparency ~= 1 then
-							local Part = jump.Instance
+	local jump = workspace:Raycast(hrp.Position, hrp.CFrame.LookVector*(hrp.Size.Z/2+0.1), raycastParams)
+	if jump then
+		if not jump.Instance:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+			if jump.Instance.ClassName ~= "TrussPart" then
+				if jump.Instance.CanCollide == true then
+					if jump.Instance.Transparency ~= 1 then
+						local Part = jump.Instance
 
-							local sides = {
-								front = Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
-								back = -Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
-								right = Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
-								left = -Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
-								up = Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
-								down = -Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
-							}
+						local sides = {
+							front = Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
+							back = -Part.CFrame.LookVector * (Part.Size.Z / 2)+Part.Position,
+							right = Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
+							left = -Part.CFrame.RightVector * (Part.Size.X / 2)+Part.Position,
+							up = Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
+							down = -Part.CFrame.UpVector * (Part.Size.Y / 2)+Part.Position,
+						}
 
-							local highestSurface = nil
-							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+						local highestSurface = nil
+						local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
 
-							for side, position in pairs(sides) do
-								if position.Y > highestY then
-									highestY = position.Y
-									highestSurface = side
-								end
+						for side, position in pairs(sides) do
+							if position.Y > highestY then
+								highestY = position.Y
+								highestSurface = side
 							end
+						end
 
-							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-								humanoid.Jump = true
-							end
+						if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+							humanoid.Jump = true
 						end
 					end
 				end

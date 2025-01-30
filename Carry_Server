@@ -33,22 +33,15 @@ local function findModelThroughPrimaryPart(primarypart)
 	return nil
 end
 
-carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame, initialCameraCFrame, initialOrientation)
+carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 	if IsCarrying then
-		local AlignPosition
-		local AlignOrientation
-		local Object_
+		if Object_:GetNetworkOwner() ~= plr then
+			Object_:SetNetworkOwner(plr)
+		end
 		
-		if Object:IsA("Model") then
-			Object_ = Object.PrimaryPart
-			for i, part in pairs(Object:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CollisionGroup = "SelfUncollide"
-				end
-			end
-		else
-			Object_ = Object
-			local model = findModelThroughPrimaryPart(Object)
+		if Object_.CollisionGroup ~= "SelfUncollide" then
+			local model = findModelThroughPrimaryPart(Object_)
+
 			if model then
 				for i, part in pairs(model:GetDescendants()) do
 					if part:IsA("BasePart") then
@@ -56,56 +49,33 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object, camCFrame, initia
 					end
 				end
 			else
-				Object.CollisionGroup = "SelfUncollide"
+				Object_.CollisionGroup = "SelfUncollide"
 			end
 		end
-		
-		if not HasAlignPosition(Object) then
-			AlignPosition = Instance.new("AlignPosition", Object_)
-			AlignPosition.Name = "IsCarrying"
-			AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-			AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
-			AlignPosition.MaxForce = 10^5
-			AlignPosition.MaxVelocity = math.huge
-			AlignPosition.Responsiveness = 100
-			
-			AlignOrientation = Instance.new("AlignOrientation", Object_)
-			AlignOrientation.Name = "IsCarrying_Orientation"
-			AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-			AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
-			AlignOrientation.MaxTorque = 10^5
-			AlignOrientation.MaxAngularVelocity = math.huge
-			AlignOrientation.Responsiveness = 100
-			Object_:SetNetworkOwner(plr)
-		else
-			AlignPosition = Object_:FindFirstChild("IsCarrying")
-			AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
-		end
-		AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * limitDistance
-		AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
 	else
-		local Object_
-		if Object:IsA("Model") then
-			Object_ = Object.PrimaryPart
-			for i, part in pairs(Object:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CollisionGroup = "Default"
+		if Object_.CollisionGroup ~= "Default" then
+			local model = findModelThroughPrimaryPart(Object_)
+
+			if model then
+				for i, part in pairs(model:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CollisionGroup = "Default"
+					end
 				end
+			else
+				Object_.CollisionGroup = "Default"
 			end
-		else
-			Object_ = Object
-			Object.CollisionGroup = "Default"
 		end
+
 		coroutine.wrap(function()
-			Object_:FindFirstChild("IsCarrying"):Destroy()
-			Object_:FindFirstChild("IsCarrying_Orientation"):Destroy()
 			task.wait()
 			--local checkpoint = tick()
 			while task.wait(0.2) do
 				local velocity = Object_.Velocity.Magnitude
 				--If lag detector not work then use "tick() - checkpoint >= 5" as a timeout
-				if velocity < 0.01 or Object_:FindFirstChild("IsCarrying") or Object_:GetNetworkOwner() == nil then
-					if not Object_:FindFirstChild("IsCarrying") then
+				if velocity < 0.01 or Object_.CollisionGroup == "SelfUncollide" or Object_:GetNetworkOwner() == nil then
+					--Check if Object is currently not being holding then set it back to server-side
+					if Object_.CollisionGroup == "Default" then
 						Object_:SetNetworkOwner(nil)
 						print("boom", velocity)
 					else

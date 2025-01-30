@@ -10,11 +10,49 @@ local mouse = localPlayer:GetMouse()
 local RunService = game:GetService("RunService")
 local Controls = require(localPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls()
 
+local Object
+local Object_
+
+local AlignPosition
+local AlignOrientation
 local CarryPoint
 local AlignPosition
-local Object
 
-local limitDistance = 6
+local IsCarrying = false
+local IsRotating = false
+
+local pickupDistance = 6
+local holdDistance = 3
+
+local function HasAlignPosition(Object)
+	if Object:IsA("Model") then
+		local primarypart = Object.PrimaryPart
+		if primarypart:FindFirstChild("IsCarrying") then
+			return true
+		else
+			return false
+		end
+	else
+		if Object:FindFirstChild("IsCarrying") then
+			return true
+		else
+			return false
+		end
+	end
+end
+
+local function findModelThroughPrimaryPart(primarypart)
+	local current = primarypart
+	while current do
+		if current:IsA("Model") then
+			if current.PrimaryPart == primarypart then
+				return current
+			end
+		end
+		current = current.Parent
+	end
+	return nil
+end
 
 local function findCarriableAncestor(target)
 	local current = target
@@ -64,54 +102,85 @@ local function Carrying(Object)
 	end
 end
 
-local IsCarrying = false
-local IsRotating = false
-
 UIS.InputBegan:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object == nil then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and not IsCarrying then
 		local Target = mouse.Target
 		Object = findCarriableAncestor(Target)
 		if Object then
-			if Carrying(Object) == false then
-				IsCarrying = true
-				local initialCameraCFrame = CurrentCamera.CFrame
-				local initialOrientation
-				if Object:IsA("Model") then
-					initialOrientation = Object.PrimaryPart.CFrame
-				else
-					initialOrientation = Object.CFrame
-				end
-				local drag; drag = RunService.Heartbeat:Connect(function()
-					if IsCarrying then
-						local delta_X = 0
-						local delta_Y = 0
-						local camCFrame = CurrentCamera.CFrame
-						if IsRotating == true then
-							if UIS:IsKeyDown(Enum.KeyCode.W) then
-								delta_X=10
-							end
-							if UIS:IsKeyDown(Enum.KeyCode.S) then
-								delta_X=-10
-							end
-							if UIS:IsKeyDown(Enum.KeyCode.A) then
-								delta_Y=10
-							end
-							if UIS:IsKeyDown(Enum.KeyCode.D) then
-								delta_Y=-10
-							end
-						end
-						initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0)
-						carry_event:InvokeServer(true, Object, camCFrame, initialCameraCFrame, initialOrientation)
+			if Object:IsA("Model") then
+				Object_ = Object.PrimaryPart
+			else
+				Object_ = Object
+			end
+			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance then
+				if Carrying(Object) == false then
+					IsCarrying = true
+					local initialCameraCFrame = CurrentCamera.CFrame
+					local initialOrientation
+					if Object:IsA("Model") then
+						initialOrientation = Object.PrimaryPart.CFrame
 					else
-						drag:Disconnect()
+						initialOrientation = Object.CFrame
 					end
-				end)
+
+					carry_event:InvokeServer(true, Object_)
+
+					local drag; drag = RunService.Heartbeat:Connect(function()
+						if IsCarrying then
+							local delta_X = 0
+							local delta_Y = 0
+							local camCFrame = CurrentCamera.CFrame
+							if IsRotating == true then
+								if UIS:IsKeyDown(Enum.KeyCode.W) then
+									delta_X=10
+								end
+								if UIS:IsKeyDown(Enum.KeyCode.S) then
+									delta_X=-10
+								end
+								if UIS:IsKeyDown(Enum.KeyCode.A) then
+									delta_Y=10
+								end
+								if UIS:IsKeyDown(Enum.KeyCode.D) then
+									delta_Y=-10
+								end
+							end
+
+							initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X), math.rad(delta_Y), 0)
+
+							if not HasAlignPosition(Object) then
+								AlignPosition = Instance.new("AlignPosition", Object_)
+								AlignPosition.Name = "IsCarrying"
+								AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+								AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
+								AlignPosition.MaxForce = 10^5
+								AlignPosition.MaxVelocity = math.huge
+								AlignPosition.Responsiveness = 100
+
+								AlignOrientation = Instance.new("AlignOrientation", Object_)
+								AlignOrientation.Name = "IsCarrying_Orientation"
+								AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+								AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
+								AlignOrientation.MaxTorque = 10^5
+								AlignOrientation.MaxAngularVelocity = math.huge
+								AlignOrientation.Responsiveness = 100
+							else
+								AlignPosition = Object_:FindFirstChild("IsCarrying")
+								AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
+							end
+
+							AlignPosition.Position = camCFrame.Position + camCFrame.RightVector*2 + camCFrame.LookVector * holdDistance
+							AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
+						else
+							drag:Disconnect()
+						end
+					end)
+				end
 			end
 		end
 	end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and Object then
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and IsCarrying then
 		Controls:Disable()
 		IsRotating = true
 	end
@@ -119,10 +188,15 @@ end)
 
 UIS.InputEnded:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object then 
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and IsCarrying then 
 		IsCarrying = false
-		carry_event:InvokeServer(false, Object, camCFrame)
+		IsRotating = false
+		Controls:Enable()
+		AlignPosition:Destroy()
+		AlignOrientation:Destroy()
+		carry_event:InvokeServer(false, Object_)
 		Object = nil
+		Object_ = nil
 	end
 
 	if input.UserInputType == Enum.UserInputType.MouseButton2 then

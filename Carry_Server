@@ -33,10 +33,6 @@ end
 
 carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 	if IsCarrying then
-		if Object_:GetNetworkOwner() ~= plr then
-			Object_:SetNetworkOwner(plr)
-		end
-
 		if Object_.CollisionGroup ~= "SelfUncollide" then
 			local model = findModelThroughPrimaryPart(Object_)
 
@@ -49,6 +45,9 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 			else
 				Object_.CollisionGroup = "SelfUncollide"
 			end
+		end
+		if Object_:GetNetworkOwner() ~= plr then
+			Object_:SetNetworkOwner(plr)
 		end
 	else
 		if Object_.CollisionGroup ~= "Default" then

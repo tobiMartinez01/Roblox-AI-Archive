@@ -102,9 +102,6 @@ local function Carrying(Object)
 	end
 end
 
-local last_tick = tick()
-local debounce = 0.1
-
 UIS.InputBegan:Connect(function(input, isChatting)
 	if isChatting then return end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 and not Object_ and not IsCarrying then
@@ -118,7 +115,6 @@ UIS.InputBegan:Connect(function(input, isChatting)
 			end
 			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
 				IsCarrying = true
-				last_tick = tick()
 				local initialCameraCFrame = CurrentCamera.CFrame
 				local initialOrientation
 				if Object:IsA("Model") then
@@ -149,6 +145,9 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignPosition = Object_:FindFirstChild("IsCarrying")
 					AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
 				end
+				
+				AlignPosition.Position = Object_.CFrame.Position
+				AlignOrientation = Object_.CFrame
 
 				local drag; drag = RunService.RenderStepped:Connect(function(dt)
 					if IsCarrying then
@@ -195,9 +194,6 @@ end)
 UIS.InputEnded:Connect(function(input, isChatting)
 	if isChatting then return end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object_ and IsCarrying then 
-		repeat
-			task.wait()
-		until tick() - last_tick >= debounce
 		Controls:Enable()
 		IsCarrying = false
 		IsRotating = false

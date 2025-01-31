@@ -1,0 +1,243 @@
+local wanderer = {}
+--Set to be same indexes
+wanderer.__index = wanderer
+
+local random = math.random
+
+function wanderer.new(agent, path, defaultDebounce, randomized)
+	local new_wander = {}
+	--Bind wander to be new_wander
+	setmetatable(new_wander, wanderer)
+	--Insert but OOP style :P aka custom properties
+	new_wander.Agent = agent
+	new_wander.Path = path
+	new_wander.Debounce = defaultDebounce
+	new_wander.Randomized = randomized
+
+	return new_wander
+end
+
+function wanderer:Run()
+	local path = self.Path
+	local path_waypoints = {}
+	for i, waypoint in ipairs(path:GetChildren()) do
+		if waypoint:IsA("BasePart") then
+			table.insert(path_waypoints, waypoint)
+		end
+	end
+	table.sort(path_waypoints, function(a, b)
+		return tonumber(a.Name) < tonumber(b.Name)
+	end)
+	local npc = self.Agent
+	local humanoid = npc.Humanoid
+	local hrp = npc.HumanoidRootPart
+
+	--Set up
+	hrp:SetNetworkOwner(nil)
+	for i, bodypart in pairs(npc:GetDescendants()) do
+		if bodypart:IsA("BasePart") then
+			bodypart.CollisionGroup = "SelfUncollide"
+		end
+	end
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {npc}
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	raycastParams.RespectCanCollide = true
+	raycastParams.IgnoreWater = true
+
+	--Workspaces
+	local RunService = game["Run Service"]
+	local PathFindingService = game["PathfindingService"]
+
+	--Libraries
+	local SimplePath = require(game.ServerStorage.SimplePath)
+	
+	--SimplePath
+	local pathParams = {
+		AgentHeight = npc:GetExtentsSize().Y,
+		AgentCanJump = true,
+		AgentCanClimb = true,
+		--AgentRadius = 2, --Changing this can cause the agent to not running correctly
+		WaypointSpacing = 1.5,
+		Costs = {
+			-- Smaller = higher priority
+			Climb = 1,
+			Blocked = math.huge,
+			Blocked_For_Raccoons = math.huge
+		},
+		PathSettings = {
+			SupportPartialPath = true
+		}
+	}
+	
+	local path, path_ = SimplePath.new(npc, pathParams)
+
+	if self.Randomized then
+		local current = random(1, #path_waypoints)
+
+		local function wander(_delay)
+			path_waypoints[current]:SetAttribute("Unavailable", true)
+			task.wait(_delay)
+			path:Run(path_waypoints[current].Position)
+		end
+
+		wander(0)
+
+		local last
+		local last_of_last
+		local debounce = self.Debounce
+
+		path.Blocked:Connect(function()
+			path:Run(path_waypoints[current].Position)
+		end)
+
+		path.Error:Connect(function()
+			path:Run(path_waypoints[current].Position)
+		end)
+
+		path.WaypointReached:Connect(function()
+			path:Run(path_waypoints[current].Position)
+		end)
+
+		path.Reached:Connect(function()
+			path_waypoints[current]:SetAttribute("Unavailable", nil)
+			last_of_last = last
+			last = current
+
+			if #path_waypoints > 3 then
+				repeat
+					current = math.random(1, #path_waypoints)
+					task.wait(1)
+				until current ~= last and current ~= last_of_last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+			else
+				repeat
+					current = math.random(1, #path_waypoints)
+					task.wait(1)
+				until current ~= last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+			end
+
+			wander(debounce)
+		end)
+
+		RunService.Heartbeat:Connect(function()
+			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
+			local size = Vector3.new(hrp.Size.X+0.05,1,1)
+			local overlap = OverlapParams.new()
+			overlap.RespectCanCollide = true
+			overlap.FilterType = Enum.RaycastFilterType.Exclude
+			overlap.FilterDescendantsInstances = {npc}
+			local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
+			
+			for i, part in pairs(obstacle) do
+				if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+					if part.ClassName ~= "TrussPart" then
+						if part.Transparency ~= 1 then
+							local sides = {
+								front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+								back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+								right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+								left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+								up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+								down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+							}
+
+							local highestSurface = nil
+							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+
+							for side, position in pairs(sides) do
+								if position.Y > highestY then
+									highestY = position.Y
+									highestSurface = side
+								end
+							end
+
+							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+								humanoid.Jump = true
+							end
+						end
+					end
+				end
+			end
+		end)
+	else
+		local current = 1
+
+		local function wander(_delay)
+			path_waypoints[current]:SetAttribute("Unavailable", true)
+			task.wait(_delay)
+			path:Run(path_waypoints[current].Position)
+		end
+
+		wander(0)
+
+		local debounce = self.Debounce
+
+		path.Blocked:Connect(function()
+			path:Run(path_waypoints[current].Position)
+		end)
+
+		path.Error:Connect(function()
+			path:Run(path_waypoints[current].Position)
+		end)
+
+		path.WaypointReached:Connect(function()
+			path:Run(path_waypoints[current].Position)
+		end)
+
+		path.Reached:Connect(function()
+			path_waypoints[current]:SetAttribute("Unavailable", nil)
+			repeat
+				current+=1
+				if current > #path_waypoints then
+					current = 1
+				end
+				task.wait(1)
+			until path_waypoints[current]:GetAttribute("Unavailable") == nil
+			wander(debounce)
+		end)
+
+		RunService.Heartbeat:Connect(function()
+			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
+			local size = Vector3.new(hrp.Size.X+0.05,1,1)
+			local overlap = OverlapParams.new()
+			overlap.RespectCanCollide = true
+			overlap.FilterType = Enum.RaycastFilterType.Exclude
+			overlap.FilterDescendantsInstances = {npc}
+			local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
+
+			for i, part in pairs(obstacle) do
+				if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+					if part.ClassName ~= "TrussPart" then
+						if part.Transparency ~= 1 then
+							local sides = {
+								front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+								back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+								right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+								left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+								up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+								down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+							}
+
+							local highestSurface = nil
+							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+
+							for side, position in pairs(sides) do
+								if position.Y > highestY then
+									highestY = position.Y
+									highestSurface = side
+								end
+							end
+
+							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+								humanoid.Jump = true
+							end
+						end
+					end
+				end
+			end
+		end)
+	end
+end
+
+return wanderer

@@ -147,7 +147,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				end
 				
 				AlignPosition.Position = Object_.CFrame.Position
-				AlignOrientation = Object_.CFrame
+				AlignOrientation.CFrame = Object_.CFrame
 
 				local drag; drag = RunService.RenderStepped:Connect(function(dt)
 					if IsCarrying then

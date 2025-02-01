@@ -96,10 +96,6 @@ function wanderer:Run()
 			path:Run(path_waypoints[current].Position)
 		end)
 
-		path.WaypointReached:Connect(function()
-			path:Run(path_waypoints[current].Position)
-		end)
-
 		path.Reached:Connect(function()
 			path_waypoints[current]:SetAttribute("Unavailable", nil)
 			last_of_last = last

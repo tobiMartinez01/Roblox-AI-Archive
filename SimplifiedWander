@@ -117,39 +117,41 @@ function wanderer:Run()
 		end)
 
 		RunService.Heartbeat:Connect(function()
-			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-			local size = Vector3.new(hrp.Size.X+0.05,1,1)
-			local overlap = OverlapParams.new()
-			overlap.RespectCanCollide = true
-			overlap.FilterType = Enum.RaycastFilterType.Exclude
-			overlap.FilterDescendantsInstances = {npc}
-			local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
-			
-			for i, part in pairs(obstacle) do
-				if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-					if part.ClassName ~= "TrussPart" then
-						if part.Transparency ~= 1 then
-							local sides = {
-								front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-								back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-								right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-								left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-								up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-								down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-							}
+			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+				local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
+				local size = Vector3.new(hrp.Size.X+0.05,1,1)
+				local overlap = OverlapParams.new()
+				overlap.RespectCanCollide = true
+				overlap.FilterType = Enum.RaycastFilterType.Exclude
+				overlap.FilterDescendantsInstances = {npc}
+				local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
 
-							local highestSurface = nil
-							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+				for i, part in pairs(obstacle) do
+					if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+						if part.ClassName ~= "TrussPart" then
+							if part.Transparency ~= 1 then
+								local sides = {
+									front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+									down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+								}
 
-							for side, position in pairs(sides) do
-								if position.Y > highestY then
-									highestY = position.Y
-									highestSurface = side
+								local highestSurface = nil
+								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+
+								for side, position in pairs(sides) do
+									if position.Y > highestY then
+										highestY = position.Y
+										highestSurface = side
+									end
 								end
-							end
 
-							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-								humanoid.Jump = true
+								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+									humanoid.Jump = true
+								end
 							end
 						end
 					end
@@ -190,39 +192,41 @@ function wanderer:Run()
 		end)
 
 		RunService.Heartbeat:Connect(function()
-			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-			local size = Vector3.new(hrp.Size.X+0.05,1,1)
-			local overlap = OverlapParams.new()
-			overlap.RespectCanCollide = true
-			overlap.FilterType = Enum.RaycastFilterType.Exclude
-			overlap.FilterDescendantsInstances = {npc}
-			local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
+			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+				local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
+				local size = Vector3.new(hrp.Size.X+0.05,1,1)
+				local overlap = OverlapParams.new()
+				overlap.RespectCanCollide = true
+				overlap.FilterType = Enum.RaycastFilterType.Exclude
+				overlap.FilterDescendantsInstances = {npc}
+				local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
 
-			for i, part in pairs(obstacle) do
-				if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-					if part.ClassName ~= "TrussPart" then
-						if part.Transparency ~= 1 then
-							local sides = {
-								front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-								back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-								right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-								left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-								up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-								down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-							}
+				for i, part in pairs(obstacle) do
+					if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+						if part.ClassName ~= "TrussPart" then
+							if part.Transparency ~= 1 then
+								local sides = {
+									front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+									down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+								}
 
-							local highestSurface = nil
-							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+								local highestSurface = nil
+								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
 
-							for side, position in pairs(sides) do
-								if position.Y > highestY then
-									highestY = position.Y
-									highestSurface = side
+								for side, position in pairs(sides) do
+									if position.Y > highestY then
+										highestY = position.Y
+										highestSurface = side
+									end
 								end
-							end
 
-							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-								humanoid.Jump = true
+								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+									humanoid.Jump = true
+								end
 							end
 						end
 					end

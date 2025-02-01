@@ -59,7 +59,7 @@ function wanderer:Run()
 		AgentCanJump = true,
 		AgentCanClimb = true,
 		--AgentRadius = 2, --Changing this can cause the agent to not running correctly
-		WaypointSpacing = 1.5,
+		--WaypointSpacing = 1.5,
 		Costs = {
 			-- Smaller = higher priority
 			Climb = 1,
@@ -178,10 +178,6 @@ function wanderer:Run()
 		end)
 
 		path.Error:Connect(function()
-			path:Run(path_waypoints[current].Position)
-		end)
-
-		path.WaypointReached:Connect(function()
 			path:Run(path_waypoints[current].Position)
 		end)
 

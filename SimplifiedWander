@@ -72,11 +72,11 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 			SupportPartialPath = true
 		}
 	}
-	
+
 	if not startingFrom then
 		startingFrom = 1
 	end
-	
+
 	local previous = path_waypoints[startingFrom - 1]
 	local path, path_ = SimplePath.new(npc, pathParams)
 	local current

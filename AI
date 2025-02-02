@@ -64,16 +64,18 @@ RunService.Heartbeat:Connect(function()
 		local target_humanoid = target.Humanoid
 
 		local destination = target.HumanoidRootPart.Position
-		
+
 		if climb == false then
 			path:Run(destination)
 			waypoints = path_:GetWaypoints()
 			for i, wp in pairs(waypoints) do
 				if wp.Label == "Climb" then
 					climb = true
+					break
 				end
 			end
 		else
+			path:Stop()
 			humanoid:MoveTo(waypoints[3].Position)
 			humanoid.MoveToFinished:Wait(1)
 			climb = false

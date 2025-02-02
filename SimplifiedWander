@@ -13,8 +13,16 @@ function wanderer.new(agent, path, defaultDebounce, randomized)
 	new_wander.Path = path
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
+	
+	--Events
+	new_wander.ReachedBindable = Instance.new("BindableEvent")
+	new_wander.Reached = new_wander.ReachedBindable.Event 
 
 	return new_wander
+end
+
+function invokeReached(self, current)
+	self.ReachedBindable:Fire(current)
 end
 
 function wanderer:Run()
@@ -52,7 +60,7 @@ function wanderer:Run()
 
 	--Libraries
 	local SimplePath = require(game.ServerStorage.SimplePath)
-	
+
 	--SimplePath
 	local pathParams = {
 		AgentHeight = npc:GetExtentsSize().Y,
@@ -70,7 +78,7 @@ function wanderer:Run()
 			SupportPartialPath = true
 		}
 	}
-	
+
 	local path, path_ = SimplePath.new(npc, pathParams)
 
 	if self.Randomized then
@@ -97,6 +105,7 @@ function wanderer:Run()
 		end)
 
 		path.Reached:Connect(function()
+			invokeReached(self, current)
 			path_waypoints[current]:SetAttribute("Unavailable", nil)
 			last_of_last = last
 			last = current
@@ -180,6 +189,7 @@ function wanderer:Run()
 		end)
 
 		path.Reached:Connect(function()
+			invokeReached(self, current)
 			path_waypoints[current]:SetAttribute("Unavailable", nil)
 			repeat
 				current+=1

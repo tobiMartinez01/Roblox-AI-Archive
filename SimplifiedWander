@@ -4,16 +4,17 @@ wanderer.__index = wanderer
 
 local random = math.random
 
-function wanderer.new(agent, path, defaultDebounce, randomized)
+function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	local new_wander = {}
 	--Bind wander to be new_wander
 	setmetatable(new_wander, wanderer)
 	--Insert but OOP style :P aka custom properties
 	new_wander.Agent = agent
 	new_wander.Path = path
+	new_wander.Costs = costs
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
-	
+
 	--Events
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
 	new_wander.Reached = new_wander.ReachedBindable.Event 
@@ -25,8 +26,7 @@ function invokeReached(self, current)
 	self.ReachedBindable:Fire(current)
 end
 
-function wanderer:Run()
-	local path = self.Path
+local function Run(npc, path, costs, debounce, randomized)
 	local path_waypoints = {}
 	for i, waypoint in ipairs(path:GetChildren()) do
 		if waypoint:IsA("BasePart") then
@@ -36,7 +36,6 @@ function wanderer:Run()
 	table.sort(path_waypoints, function(a, b)
 		return tonumber(a.Name) < tonumber(b.Name)
 	end)
-	local npc = self.Agent
 	local humanoid = npc.Humanoid
 	local hrp = npc.HumanoidRootPart
 
@@ -68,12 +67,7 @@ function wanderer:Run()
 		AgentCanClimb = true,
 		--AgentRadius = 2, --Changing this can cause the agent to not running correctly
 		--WaypointSpacing = 1.5,
-		Costs = {
-			-- Smaller = higher priority
-			Climb = 1,
-			Blocked = math.huge,
-			Blocked_For_Raccoons = math.huge
-		},
+		Costs = costs,
 		PathSettings = {
 			SupportPartialPath = true
 		}
@@ -81,7 +75,7 @@ function wanderer:Run()
 
 	local path, path_ = SimplePath.new(npc, pathParams)
 
-	if self.Randomized then
+	if randomized then
 		local current = random(1, #path_waypoints)
 
 		local function wander(_delay)
@@ -94,7 +88,6 @@ function wanderer:Run()
 
 		local last
 		local last_of_last
-		local debounce = self.Debounce
 
 		path.Blocked:Connect(function()
 			path:Run(path_waypoints[current].Position)
@@ -178,8 +171,6 @@ function wanderer:Run()
 
 		wander(0)
 
-		local debounce = self.Debounce
-
 		path.Blocked:Connect(function()
 			path:Run(path_waypoints[current].Position)
 		end)
@@ -244,6 +235,10 @@ function wanderer:Run()
 			end
 		end)
 	end
+end
+
+function wanderer:Run()
+	Run(self.Agent, self.Path, self.Costs, self.Debounce, self.Randomized)
 end
 
 return wanderer

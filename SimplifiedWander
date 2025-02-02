@@ -157,6 +157,9 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 
 		if reached_wp:FindFirstChildWhichIsA("Attachment") then
 			local lookPoint = reached_wp:FindFirstChildWhichIsA("Attachment")
+			repeat
+				task.wait()
+			until humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and humanoid.FloorMaterial ~= Enum.Material.Air
 			self.AO.Enabled = true
 			self.AO.LookAtPosition = lookPoint.WorldCFrame.Position * Vector3.new(1,0,1) + hrp.Position * Vector3.new(0,1,0)
 		end

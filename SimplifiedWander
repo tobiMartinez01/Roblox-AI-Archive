@@ -18,7 +18,7 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.AO = Instance.new("AlignOrientation", agent.HumanoidRootPart)
 	new_wander.Attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
 	
-	new_wander.AO.PrimaryAxis = Enum.AlignType.PrimaryAxisLookAt
+	new_wander.AO.AlignType = Enum.AlignType.PrimaryAxisLookAt
 	new_wander.AO.Attachment0 = new_wander.Attachment0 
 	new_wander.AO.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	new_wander.AO.MaxTorque = 10^6

@@ -99,8 +99,10 @@ local function Run(self, npc, path, costs, debounce, randomized)
 
 		path.Reached:Connect(function()
 			invokeReached(self, current)
-			path_waypoints[current]:SetAttribute("Unavailable", nil)
-			debounce = path_waypoints[current]:GetAttribute('Debounce') or debounce
+			local reached_wp = path_waypoints[current]
+			reached_wp:SetAttribute("Unavailable", nil)
+			debounce = reached_wp:GetAttribute('Debounce') or debounce
+
 			last_of_last = last
 			last = current
 
@@ -182,8 +184,9 @@ local function Run(self, npc, path, costs, debounce, randomized)
 
 		path.Reached:Connect(function()
 			invokeReached(self, current)
-			path_waypoints[current]:SetAttribute("Unavailable", nil)
-			debounce = path_waypoints[current]:GetAttribute('Debounce') or debounce
+			local reached_wp = path_waypoints[current]
+			reached_wp:SetAttribute("Unavailable", nil)
+			debounce = reached_wp:GetAttribute('Debounce') or debounce
 			repeat
 				current+=1
 				if current > #path_waypoints then

@@ -27,15 +27,6 @@ function invokeReached(self, current)
 end
 
 local function Run(self, npc, GetPathFrom, costs, debounce, randomized, startingFrom)
-	local path_waypoints = {}
-	for i, waypoint in ipairs(GetPathFrom:GetChildren()) do
-		if waypoint:IsA("BasePart") then
-			table.insert(path_waypoints, waypoint)
-		end
-	end
-	table.sort(path_waypoints, function(a, b)
-		return tonumber(a.Name) < tonumber(b.Name)
-	end)
 	local humanoid = npc.Humanoid
 	local hrp = npc.HumanoidRootPart
 
@@ -77,10 +68,19 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		startingFrom = 1
 	end
 
+	local path_waypoints = {}
+	for i, waypoint in ipairs(GetPathFrom:GetChildren()) do
+		if waypoint:IsA("BasePart") then
+			table.insert(path_waypoints, waypoint)
+		end
+	end
+	table.sort(path_waypoints, function(a, b)
+		return tonumber(a.Name) < tonumber(b.Name)
+	end)
+
 	local previous = path_waypoints[startingFrom - 1]
 	local path, path_ = SimplePath.new(npc, pathParams)
 	local current
-	local finished = 0
 	local last
 	local last_of_last
 
@@ -109,6 +109,8 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 	path.Error:Connect(function()
 		path:Run(path_waypoints[current].Position)
 	end)
+	
+	local finished = 0
 
 	path.Reached:Connect(function()
 		finished+=1
@@ -117,6 +119,11 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		reached_wp:SetAttribute("Unavailable", nil)
 		debounce = reached_wp:GetAttribute('Debounce') or debounce
 		randomized = reached_wp:GetAttribute('Randomized') or randomized 
+		
+		if reached_wp:FindFirstChildWhichIsA("Attachment") then
+			local lookPoint = reached_wp:FindFirstChildWhichIsA("Attachment")
+			npc.PrimaryPart.CFrame = CFrame.new(npc.PrimaryPart.Position, lookPoint.WorldPosition*Vector3.new(1,0,1) + npc.PrimaryPart.Position*Vector3.new(0,1,0))
+		end
 
 		local sub = reached_wp:GetChildren()
 		local sub_waypoints = {}
@@ -133,6 +140,8 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 			Run(self, npc, reached_wp, costs, sub_debounce, sub_randomized, 1)
 			return
 		end
+		
+		--print(npc, finished, #path_waypoints)
 
 		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
 			if randomized then

@@ -75,21 +75,22 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 
 	local path, path_ = SimplePath.new(npc, pathParams)
 	local current
+	local finished = 0
 	local last
 	local last_of_last
-	
+
 	if randomized then
 		current = random(1, #path_waypoints)
 	else
 		current = startingFrom or 1
 	end
-	
+
 	local function wander(_delay)
 		path_waypoints[current]:SetAttribute("Unavailable", true)
 		task.wait(_delay)
 		path:Run(path_waypoints[current].Position)
 	end
-	
+
 	path.Blocked:Connect(function()
 		path:Run(path_waypoints[current].Position)
 	end)
@@ -97,42 +98,77 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 	path.Error:Connect(function()
 		path:Run(path_waypoints[current].Position)
 	end)
-	
+
 	path.Reached:Connect(function()
+		finished+=1
 		invokeReached(self, current)
 		local reached_wp = path_waypoints[current]
 		reached_wp:SetAttribute("Unavailable", nil)
 		debounce = reached_wp:GetAttribute('Debounce') or debounce
+		randomized = reached_wp:GetAttribute('Randomized') or randomized 
+		
+		local sub = reached_wp:GetChildren()
+		local sub_waypoints = {}
+		
+		for i, wp in ipairs(sub) do
+			if wp:IsA("BasePart") then
+				table.insert(sub_waypoints, wp)
+			end
+		end
+		
+		if #sub_waypoints > 0 then
+			Run(self, npc, reached_wp, costs, debounce, randomized, 1)
+			return
+		end
 
-		if randomized then
-			last_of_last = last
-			last = current
-			if #path_waypoints > 3 then
-				repeat
-					current = math.random(1, #path_waypoints)
-					task.wait()
-				until current ~= last and current ~= last_of_last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
+			if randomized then
+				last_of_last = last
+				last = current
+				if #path_waypoints > 3 then
+					repeat
+						current = math.random(1, #path_waypoints)
+						task.wait()
+					until current ~= last and current ~= last_of_last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+				else
+					repeat
+						current = math.random(1, #path_waypoints)
+						task.wait()
+					until current ~= last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+				end
 			else
 				repeat
-					current = math.random(1, #path_waypoints)
+					current+=1
+					if current > #path_waypoints then
+						current = 1
+					end
 					task.wait()
-				until current ~= last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+				until path_waypoints[current]:GetAttribute("Unavailable") == nil
 			end
 		else
-			repeat
-				current+=1
-				if current > #path_waypoints then
-					current = 1
+			if GetPathFrom.Parent then				
+				local continue_wp = {}
+				
+				for i, waypoint in ipairs(GetPathFrom.Parent:GetChildren()) do
+					if waypoint:IsA("BasePart") then
+						table.insert(continue_wp, waypoint)
+					end
 				end
-				task.wait()
-			until path_waypoints[current]:GetAttribute("Unavailable") == nil
+				
+				table.sort(continue_wp, function(a, b)
+					return tonumber(a.Name) < tonumber(b.Name)
+				end)
+				
+				Run(self, npc, GetPathFrom.Parent, costs, debounce, randomized, table.find(continue_wp, GetPathFrom)+1)
+				return
+			end
 		end
 
 		wander(debounce)
 	end)
-	
+
 	wander(0)
-	
+
 	RunService.Heartbeat:Connect(function()
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 

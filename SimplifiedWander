@@ -26,9 +26,9 @@ function invokeReached(self, current)
 	self.ReachedBindable:Fire(current)
 end
 
-local function Run(self, npc, path, costs, debounce, randomized)
+local function Run(self, npc, GetPathFrom, costs, debounce, randomized, startingFrom)
 	local path_waypoints = {}
-	for i, waypoint in ipairs(path:GetChildren()) do
+	for i, waypoint in ipairs(GetPathFrom:GetChildren()) do
 		if waypoint:IsA("BasePart") then
 			table.insert(path_waypoints, waypoint)
 		end
@@ -164,7 +164,7 @@ local function Run(self, npc, path, costs, debounce, randomized)
 			end
 		end)
 	else
-		local current = 1
+		local current = startingFrom or 1
 
 		local function wander(_delay)
 			path_waypoints[current]:SetAttribute("Unavailable", true)

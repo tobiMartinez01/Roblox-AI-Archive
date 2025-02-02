@@ -14,18 +14,6 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.Costs = costs
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
-	
-	new_wander.AO = Instance.new("AlignOrientation", agent.HumanoidRootPart)
-	new_wander.Attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
-	
-	new_wander.Attachment0.CFrame=CFrame.Angles(0, math.rad(90), 0)
-	
-	new_wander.AO.AlignType = Enum.AlignType.PrimaryAxisLookAt
-	new_wander.AO.Attachment0 = new_wander.Attachment0 
-	new_wander.AO.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	new_wander.AO.MaxTorque = 10000
-	new_wander.AO.MaxAngularVelocity = 50
-	new_wander.AO.Responsiveness = 25
 
 	--Events
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
@@ -92,9 +80,9 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	local last
 	local last_of_last
 	local finished
-
+	
 	local path, path_ = SimplePath.new(npc, pathParams)
-
+	
 	--Finding next index
 	if previous then
 		if randomized then
@@ -115,18 +103,17 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		end
 		finished = 0
 	end
-
+	
 	current = path_waypoints[currentIndex]
-
+	
 	local function wander(_delay)
 		current = path_waypoints[currentIndex]
 		--print(npc.Name .. " is going to: " .. tostring(current))
 		current:SetAttribute("Unavailable", true)
 		task.wait(_delay)
-		self.AO.Enabled = false
 		path:Run(current.Position)
 	end
-
+	
 	local function upper_route()
 		if GetPathFrom.Parent then				
 			local continue_wp = {}
@@ -146,7 +133,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 			Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), current_index_)
 		end
 	end
-
+	
 	path.Reached:Connect(function()
 		finished+=1
 		invokeReached(self, currentIndex)
@@ -157,11 +144,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 
 		if reached_wp:FindFirstChildWhichIsA("Attachment") then
 			local lookPoint = reached_wp:FindFirstChildWhichIsA("Attachment")
-			repeat
-				task.wait()
-			until humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and humanoid.FloorMaterial ~= Enum.Material.Air
-			self.AO.Enabled = true
-			self.AO.LookAtPosition = lookPoint.WorldCFrame.Position * Vector3.new(1,0,1) + hrp.Position * Vector3.new(0,1,0)
+			npc.PrimaryPart.CFrame = CFrame.new(npc.PrimaryPart.Position, lookPoint.WorldPosition*Vector3.new(1,0,1) + npc.PrimaryPart.Position*Vector3.new(0,1,0))
 		end
 
 		local sub = reached_wp:GetChildren()
@@ -182,10 +165,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		end
 
 		--print(npc, finished, #path_waypoints)
-
+		
 		last_of_last = last
 		last = currentIndex
-
+		
 		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
 			--print("Reroll")
 			if randomized then
@@ -213,10 +196,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 			upper_route()
 			return
 		end
-
+		
 		wander(debounce)
 	end)
-
+	
 	if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
 		if previous then
 			wander(previous:GetAttribute('Debounce') or 0)
@@ -227,7 +210,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		upper_route()
 		return
 	end
-
+	
 	path.Blocked:Connect(function()
 		path:Run(current.Position)
 	end)
@@ -235,7 +218,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	path.Error:Connect(function()
 		path:Run(current.Position)
 	end)
-
+	
 	RunService.Heartbeat:Connect(function()
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 

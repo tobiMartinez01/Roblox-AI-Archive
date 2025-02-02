@@ -22,8 +22,8 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	return new_wander
 end
 
-function invokeReached(self, current)
-	self.ReachedBindable:Fire(current)
+function invokeReached(self, currentIndex)
+	self.ReachedBindable:Fire(currentIndex)
 end
 
 local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previousIndex)
@@ -74,54 +74,47 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		return tonumber(a.Name) < tonumber(b.Name)
 	end)
 
-	local previous = path_waypoints[previousIndex]
-	local path, path_ = SimplePath.new(npc, pathParams)
+	local currentIndex
 	local current
+	local previous = path_waypoints[previousIndex]
 	local last
 	local last_of_last
-
-	--Next index
-	if randomized then
-		if previous then
-			repeat
-				current = random(1, #path_waypoints)
-			until current ~= previousIndex
-		else
-			current = random(1, #path_waypoints)
-		end
-	else
-		if previous then
-			current = previousIndex + 1
-		else
-			current = 1
-		end
-	end
-
-	local function wander(_delay)
-		path_waypoints[current]:SetAttribute("Unavailable", true)
-		task.wait(_delay)
-		path:Run(path_waypoints[current].Position)
-	end
-
-	path.Blocked:Connect(function()
-		path:Run(path_waypoints[current].Position)
-	end)
-
-	path.Error:Connect(function()
-		path:Run(path_waypoints[current].Position)
-	end)
-
 	local finished
 	
+	local path, path_ = SimplePath.new(npc, pathParams)
+	
+	--Finding next index
 	if previous then
+		if randomized then
+			repeat
+				currentIndex = math.random(1, #path_waypoints)
+				task.wait()
+			until currentIndex ~= previousIndex
+		else
+			currentIndex = previousIndex + 1
+		end
 		finished = previous:GetAttribute('Finished')
+		previous:SetAttribute('Finished', nil)
 	else
+		if randomized then
+			currentIndex = math.random(1, #path_waypoints) 
+		else
+			currentIndex = 1
+		end
 		finished = 0
 	end
 	
-	--print(previous)
+	current = path_waypoints[currentIndex]
 	
-	local function upper()
+	local function wander(_delay)
+		current = path_waypoints[currentIndex]
+		--print(npc.Name .. " is going to: " .. tostring(current))
+		current:SetAttribute("Unavailable", true)
+		task.wait(_delay)
+		path:Run(current.Position)
+	end
+	
+	local function upper_route()
 		if GetPathFrom.Parent then				
 			local continue_wp = {}
 
@@ -135,16 +128,16 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 				return tonumber(a.Name) < tonumber(b.Name)
 			end)
 
-			local current_index = table.find(continue_wp, GetPathFrom)
+			local current_index_ = table.find(continue_wp, GetPathFrom)
 
-			Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), current_index)
+			Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), current_index_)
 		end
 	end
-
+	
 	path.Reached:Connect(function()
 		finished+=1
-		invokeReached(self, current)
-		local reached_wp = path_waypoints[current]
+		invokeReached(self, currentIndex)
+		local reached_wp = current
 		reached_wp:SetAttribute("Unavailable", nil)
 		debounce = reached_wp:GetAttribute('Debounce') or debounce
 		randomized = reached_wp:GetAttribute('Randomized') or randomized 
@@ -172,39 +165,41 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		end
 
 		--print(npc, finished, #path_waypoints)
-
+		
+		last_of_last = last
+		last = currentIndex
+		
 		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
+			--print("Reroll")
 			if randomized then
-				last_of_last = last
-				last = current
 				if #path_waypoints > 3 then
 					repeat
-						current = math.random(1, #path_waypoints)
+						currentIndex = math.random(1, #path_waypoints) 
 						task.wait()
-					until current ~= last and current ~= last_of_last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+					until currentIndex ~= last and currentIndex ~= last_of_last and current:GetAttribute("Unavailable") == nil
 				else
 					repeat
-						current = math.random(1, #path_waypoints)
+						currentIndex = math.random(1, #path_waypoints) 
 						task.wait()
-					until current ~= last and path_waypoints[current]:GetAttribute("Unavailable") == nil
+					until currentIndex ~= last and current:GetAttribute("Unavailable") == nil
 				end
 			else
 				repeat
-					current+=1
-					if current > #path_waypoints then
-						current = 1
+					currentIndex+=1
+					if currentIndex > #path_waypoints then
+						currentIndex = 1
 					end
 					task.wait()
-				until path_waypoints[current]:GetAttribute("Unavailable") == nil
+				until current:GetAttribute("Unavailable") == nil
 			end
 		else
-			upper()
+			upper_route()
 			return
 		end
-
+		
 		wander(debounce)
 	end)
-
+	
 	if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
 		if previous then
 			wander(previous:GetAttribute('Debounce') or 0)
@@ -212,10 +207,18 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 			wander(0)
 		end
 	else
-		upper()
+		upper_route()
 		return
 	end
+	
+	path.Blocked:Connect(function()
+		path:Run(current.Position)
+	end)
 
+	path.Error:Connect(function()
+		path:Run(current.Position)
+	end)
+	
 	RunService.Heartbeat:Connect(function()
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 

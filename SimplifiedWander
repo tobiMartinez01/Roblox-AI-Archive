@@ -23,9 +23,9 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.AO.AlignType = Enum.AlignType.PrimaryAxisLookAt
 	new_wander.AO.Attachment0 = new_wander.Attachment0 
 	new_wander.AO.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	new_wander.AO.MaxTorque = 10^6
+	new_wander.AO.MaxTorque = 10000
 	new_wander.AO.MaxAngularVelocity = 50
-	new_wander.AO.Responsiveness = 50
+	new_wander.AO.Responsiveness = 25
 
 	--Events
 	new_wander.ReachedBindable = Instance.new("BindableEvent")

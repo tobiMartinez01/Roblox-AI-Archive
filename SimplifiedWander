@@ -106,18 +106,20 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		reached_wp:SetAttribute("Unavailable", nil)
 		debounce = reached_wp:GetAttribute('Debounce') or debounce
 		randomized = reached_wp:GetAttribute('Randomized') or randomized 
-		
+
 		local sub = reached_wp:GetChildren()
 		local sub_waypoints = {}
-		
+
 		for i, wp in ipairs(sub) do
 			if wp:IsA("BasePart") then
 				table.insert(sub_waypoints, wp)
 			end
 		end
-		
+
 		if #sub_waypoints > 0 then
-			Run(self, npc, reached_wp, costs, debounce, randomized, 1)
+			local sub_debounce = reached_wp:GetAttribute('Sub_Debounce')
+			local sub_randomized = reached_wp:GetAttribute('Sub_Randomized')
+			Run(self, npc, reached_wp, costs, sub_debounce, sub_randomized, 1)
 			return
 		end
 
@@ -148,26 +150,33 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		else
 			if GetPathFrom.Parent then				
 				local continue_wp = {}
-				
+
 				for i, waypoint in ipairs(GetPathFrom.Parent:GetChildren()) do
 					if waypoint:IsA("BasePart") then
 						table.insert(continue_wp, waypoint)
 					end
 				end
-				
+
 				table.sort(continue_wp, function(a, b)
 					return tonumber(a.Name) < tonumber(b.Name)
 				end)
 				
-				Run(self, npc, GetPathFrom.Parent, costs, debounce, randomized, table.find(continue_wp, GetPathFrom)+1)
+				local next_index = table.find(continue_wp, GetPathFrom)+1
+
+				Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), next_index)
 				return
 			end
 		end
 
 		wander(debounce)
 	end)
-
-	wander(0)
+	
+	local previous = path_waypoints[current - 1]
+	if previous then
+		wander(previous:GetAttribute('Debounce') or 0)
+	else
+		wander(0)
+	end
 
 	RunService.Heartbeat:Connect(function()
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then

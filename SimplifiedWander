@@ -96,7 +96,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		current = startingFrom
 	end
 
+	local finished = 0
+	
 	local function wander(_delay)
+		finished+=1
 		path_waypoints[current]:SetAttribute("Unavailable", true)
 		task.wait(_delay)
 		path:Run(path_waypoints[current].Position)
@@ -109,17 +112,14 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 	path.Error:Connect(function()
 		path:Run(path_waypoints[current].Position)
 	end)
-	
-	local finished = 0
 
 	path.Reached:Connect(function()
-		finished+=1
 		invokeReached(self, current)
 		local reached_wp = path_waypoints[current]
 		reached_wp:SetAttribute("Unavailable", nil)
 		debounce = reached_wp:GetAttribute('Debounce') or debounce
 		randomized = reached_wp:GetAttribute('Randomized') or randomized 
-		
+
 		if reached_wp:FindFirstChildWhichIsA("Attachment") then
 			local lookPoint = reached_wp:FindFirstChildWhichIsA("Attachment")
 			npc.PrimaryPart.CFrame = CFrame.new(npc.PrimaryPart.Position, lookPoint.WorldPosition*Vector3.new(1,0,1) + npc.PrimaryPart.Position*Vector3.new(0,1,0))
@@ -140,7 +140,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 			Run(self, npc, reached_wp, costs, sub_debounce, sub_randomized, 1)
 			return
 		end
-		
+
 		--print(npc, finished, #path_waypoints)
 
 		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then

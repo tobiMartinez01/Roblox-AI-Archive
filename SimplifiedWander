@@ -26,7 +26,7 @@ function invokeReached(self, current)
 	self.ReachedBindable:Fire(current)
 end
 
-local function Run(self, npc, GetPathFrom, costs, debounce, randomized, startingFrom)
+local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previousIndex)
 	local humanoid = npc.Humanoid
 	local hrp = npc.HumanoidRootPart
 
@@ -64,10 +64,6 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		}
 	}
 
-	if not startingFrom then
-		startingFrom = 1
-	end
-
 	local path_waypoints = {}
 	for i, waypoint in ipairs(GetPathFrom:GetChildren()) do
 		if waypoint:IsA("BasePart") then
@@ -78,22 +74,27 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		return tonumber(a.Name) < tonumber(b.Name)
 	end)
 
-	local previous = path_waypoints[startingFrom - 1]
+	local previous = path_waypoints[previousIndex]
 	local path, path_ = SimplePath.new(npc, pathParams)
 	local current
 	local last
 	local last_of_last
 
+	--Next index
 	if randomized then
 		if previous then
 			repeat
 				current = random(1, #path_waypoints)
-			until current ~= previous
+			until current ~= previousIndex
 		else
 			current = random(1, #path_waypoints)
 		end
 	else
-		current = startingFrom
+		if previous then
+			current = previousIndex + 1
+		else
+			current = 1
+		end
 	end
 
 	local function wander(_delay)
@@ -110,7 +111,35 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		path:Run(path_waypoints[current].Position)
 	end)
 
-	local finished = 0
+	local finished
+	
+	if previous then
+		finished = previous:GetAttribute('Finished')
+	else
+		finished = 0
+	end
+	
+	--print(previous)
+	
+	local function upper()
+		if GetPathFrom.Parent then				
+			local continue_wp = {}
+
+			for i, waypoint in ipairs(GetPathFrom.Parent:GetChildren()) do
+				if waypoint:IsA("BasePart") then
+					table.insert(continue_wp, waypoint)
+				end
+			end
+
+			table.sort(continue_wp, function(a, b)
+				return tonumber(a.Name) < tonumber(b.Name)
+			end)
+
+			local current_index = table.find(continue_wp, GetPathFrom)
+
+			Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), current_index)
+		end
+	end
 
 	path.Reached:Connect(function()
 		finished+=1
@@ -135,9 +164,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 		end
 
 		if #sub_waypoints > 0 then
+			reached_wp:SetAttribute('Finished', finished)
 			local sub_debounce = reached_wp:GetAttribute('Sub_Debounce')
 			local sub_randomized = reached_wp:GetAttribute('Sub_Randomized')
-			Run(self, npc, reached_wp, costs, sub_debounce, sub_randomized, 1)
+			Run(self, npc, reached_wp, costs, sub_debounce, sub_randomized)
 			return
 		end
 
@@ -168,33 +198,22 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, starting
 				until path_waypoints[current]:GetAttribute("Unavailable") == nil
 			end
 		else
-			if GetPathFrom.Parent then				
-				local continue_wp = {}
-
-				for i, waypoint in ipairs(GetPathFrom.Parent:GetChildren()) do
-					if waypoint:IsA("BasePart") then
-						table.insert(continue_wp, waypoint)
-					end
-				end
-
-				table.sort(continue_wp, function(a, b)
-					return tonumber(a.Name) < tonumber(b.Name)
-				end)
-
-				local next_index = table.find(continue_wp, GetPathFrom)+1
-
-				Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), next_index)
-				return
-			end
+			upper()
+			return
 		end
 
 		wander(debounce)
 	end)
 
-	if previous then
-		wander(previous:GetAttribute('Debounce') or 0)
+	if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
+		if previous then
+			wander(previous:GetAttribute('Debounce') or 0)
+		else
+			wander(0)
+		end
 	else
-		wander(0)
+		upper()
+		return
 	end
 
 	RunService.Heartbeat:Connect(function()

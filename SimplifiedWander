@@ -80,9 +80,9 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	local last
 	local last_of_last
 	local finished
-	
+
 	local path, path_ = SimplePath.new(npc, pathParams)
-	
+
 	--Finding next index
 	if previous then
 		if randomized then
@@ -103,9 +103,9 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		end
 		finished = 0
 	end
-	
+
 	current = path_waypoints[currentIndex]
-	
+
 	local function wander(_delay)
 		current = path_waypoints[currentIndex]
 		--print(npc.Name .. " is going to: " .. tostring(current))
@@ -113,7 +113,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		task.wait(_delay)
 		path:Run(current.Position)
 	end
-	
+
 	local function upper_route()
 		if GetPathFrom.Parent then				
 			local continue_wp = {}
@@ -133,7 +133,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 			Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), current_index_)
 		end
 	end
-	
+
 	path.Reached:Connect(function()
 		finished+=1
 		invokeReached(self, currentIndex)
@@ -165,10 +165,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		end
 
 		--print(npc, finished, #path_waypoints)
-		
+
 		last_of_last = last
 		last = currentIndex
-		
+
 		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
 			--print("Reroll")
 			if randomized then
@@ -196,10 +196,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 			upper_route()
 			return
 		end
-		
+
 		wander(debounce)
 	end)
-	
+
 	if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
 		if previous then
 			wander(previous:GetAttribute('Debounce') or 0)
@@ -210,7 +210,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		upper_route()
 		return
 	end
-	
+
 	path.Blocked:Connect(function()
 		path:Run(current.Position)
 	end)
@@ -218,7 +218,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	path.Error:Connect(function()
 		path:Run(current.Position)
 	end)
-	
+
 	RunService.Heartbeat:Connect(function()
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 

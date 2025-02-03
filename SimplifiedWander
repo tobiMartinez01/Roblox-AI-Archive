@@ -57,7 +57,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	for i, bodypart in pairs(npc:GetDescendants()) do
 		if bodypart:IsA("BasePart") then
 			bodypart.CollisionGroup = "SelfUncollide"
-			bodypart:SetNetworkOwner()
+			bodypart:SetNetworkOwner(nil)
 		end
 	end
 

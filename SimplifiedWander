@@ -244,9 +244,13 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	path.Error:Connect(function()
 		path:Run(current.Position)
 	end)
+	
+	path.WaypointReached:Connect(function()
+		path:Run(current.Position)
+	end)
 
 	RunService.Heartbeat:Connect(function()
-		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and path.Status == SimplePath.StatusType.Active then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
 			local size = Vector3.new(hrp.Size.X+0.05,1,1)
 			local overlap = OverlapParams.new()

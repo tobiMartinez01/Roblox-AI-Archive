@@ -8,6 +8,7 @@ self.PrimaryPart:SetNetworkOwner(nil)
 for i, bodypart in pairs(self:GetDescendants()) do
 	if bodypart:IsA("BasePart") then
 		bodypart.CollisionGroup = "SelfUncollide"
+		bodypart:SetNetworkOwner(nil)
 	end
 end
 

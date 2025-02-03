@@ -16,7 +16,7 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.Randomized = randomized
 	
 	local attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
-	attachment0.CFrame = CFrame.Angles(0, math.rad(90), 0)
+	attachment0.CFrame = CFrame.new(0, 0, -0.3) * CFrame.Angles(0, math.rad(90), 0)
 	
 	local alignOrientation = Instance.new("AlignOrientation", attachment0)
 	alignOrientation.MaxTorque = 10^5

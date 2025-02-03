@@ -54,10 +54,10 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	local hrp = npc.HumanoidRootPart
 
 	--Set up
-	hrp:SetNetworkOwner()
 	for i, bodypart in pairs(npc:GetDescendants()) do
 		if bodypart:IsA("BasePart") then
 			bodypart.CollisionGroup = "SelfUncollide"
+			bodypart:SetNetworkOwner()
 		end
 	end
 

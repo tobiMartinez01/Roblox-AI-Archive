@@ -2,6 +2,13 @@ local wanderer = {}
 --Set to be same indexes
 wanderer.__index = wanderer
 
+--Workspaces
+local RunService = game["Run Service"]
+local PathFindingService = game["PathfindingService"]
+
+--Libraries
+local SimplePath = require(game.ServerStorage.SimplePath)
+
 local random = math.random
 
 function wanderer.new(agent, path, costs, defaultDebounce, randomized)
@@ -66,13 +73,6 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	raycastParams.RespectCanCollide = true
 	raycastParams.IgnoreWater = true
-
-	--Workspaces
-	local RunService = game["Run Service"]
-	local PathFindingService = game["PathfindingService"]
-
-	--Libraries
-	local SimplePath = require(game.ServerStorage.SimplePath)
 
 	--SimplePath
 	local pathParams = {

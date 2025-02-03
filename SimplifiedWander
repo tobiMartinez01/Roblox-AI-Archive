@@ -245,10 +245,6 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		path:Run(current.Position)
 	end)
 
-	path.WaypointReached:Connect(function()
-		path:Run(current.Position)
-	end)
-
 	RunService.Heartbeat:Connect(function()
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and path.Status == SimplePath.StatusType.Active then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 

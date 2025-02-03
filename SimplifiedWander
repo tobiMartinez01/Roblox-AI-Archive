@@ -14,6 +14,20 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.Costs = costs
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
+	
+	local attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
+	attachment0.CFrame = CFrame.Angles(0, math.rad(90), 0)
+	
+	local alignOrientation = Instance.new("AlignOrientation", attachment0)
+	alignOrientation.MaxTorque = 10^5
+	alignOrientation.MaxAngularVelocity = 100
+	alignOrientation.Responsiveness = 20
+	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	alignOrientation.AlignType = Enum.AlignType.PrimaryAxisLookAt
+	alignOrientation.Attachment0 = attachment0
+	
+	new_wander.Attachment0 = attachment0
+	new_wander.AlignOrientation = alignOrientation
 
 	--Events
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
@@ -24,6 +38,14 @@ end
 
 function invokeReached(self, currentIndex)
 	self.ReachedBindable:Fire(currentIndex)
+end
+
+function lookEnable(self)
+	self.AlignOrientation.Enabled = true
+end
+
+function lookDisable(self)
+	self.AlignOrientation.Enabled = false
 end
 
 local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previousIndex)
@@ -111,6 +133,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		--print(npc.Name .. " is going to: " .. tostring(current))
 		current:SetAttribute("Unavailable", true)
 		task.wait(_delay)
+		lookDisable(self)
 		path:Run(current.Position)
 	end
 
@@ -144,7 +167,9 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 
 		if reached_wp:FindFirstChildWhichIsA("Attachment") then
 			local lookPoint = reached_wp:FindFirstChildWhichIsA("Attachment")
-			npc.PrimaryPart.CFrame = CFrame.new(npc.PrimaryPart.Position, lookPoint.WorldPosition*Vector3.new(1,0,1) + npc.PrimaryPart.Position*Vector3.new(0,1,0))
+			lookEnable(self)
+			local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
+			self.AlignOrientation.LookAtPosition = hrp.Position + (fixedLookAtPos - hrp.Position).Unit
 		end
 
 		local sub = reached_wp:GetChildren()

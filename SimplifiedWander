@@ -14,18 +14,19 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.Costs = costs
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
-	
+
 	local attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
-	attachment0.CFrame = CFrame.new(0, 0, -0.3) * CFrame.Angles(0, math.rad(90), 0)
-	
+	attachment0.CFrame = CFrame.Angles(0, math.rad(90), 0)
+
 	local alignOrientation = Instance.new("AlignOrientation", attachment0)
 	alignOrientation.MaxTorque = 10^5
 	alignOrientation.MaxAngularVelocity = 100
 	alignOrientation.Responsiveness = 20
 	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	alignOrientation.AlignType = Enum.AlignType.PrimaryAxisLookAt
+	alignOrientation.ReactionTorqueEnabled = true
 	alignOrientation.Attachment0 = attachment0
-	
+
 	new_wander.Attachment0 = attachment0
 	new_wander.AlignOrientation = alignOrientation
 

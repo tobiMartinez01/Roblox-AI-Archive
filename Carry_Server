@@ -49,6 +49,7 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 		if Object_:GetNetworkOwner() ~= plr then
 			Object_:SetNetworkOwner(plr)
 		end
+		Object_.Anchored = false
 	else
 		if Object_.CollisionGroup ~= "Default" then
 			local model = findModelThroughPrimaryPart(Object_)

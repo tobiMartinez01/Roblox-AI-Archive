@@ -107,7 +107,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	local path, jumpDetection = NoobPath.Humanoid(npc, pathParams)
 	path.Timeout = true -- Off by default, it calculate time necessary to travel between Waypoints and Check if the Character arrived after that amount of time, Trapped will be fired if the Character didn't reach Waypoint in time
 	path.Speed = humanoid.WalkSpeed -- 16 by default, used to allow Timeout calculate time necessary to travel between Waypoints
-	path.Visualize = true -- Off by default, basically generate visual spheres to represent Waypoints
+	path.Visualize = false -- Off by default, basically generate visual spheres to represent Waypoints
 	path.Interval = 0.05 -- 0.1 by default, determine the frequency of checks about Character's in air / jumping state
 	path.Precise = true -- false by default, determine if the Character should wait until jump complete before begin moving to further waypoints
 

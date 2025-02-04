@@ -243,9 +243,6 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	end
 
 	path.Trapped:Connect(function()
-		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
-			path.Jump()
-		end
 		path:Run()
 	end)
 

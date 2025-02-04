@@ -7,7 +7,7 @@ local RunService = game["Run Service"]
 local PathFindingService = game["PathfindingService"]
 
 --Libraries
-local SimplePath = require(game.ServerStorage.SimplePath)
+local NoobPath = require(game.ServerStorage.NoobPath)
 
 local random = math.random
 
@@ -74,7 +74,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	raycastParams.RespectCanCollide = true
 	raycastParams.IgnoreWater = true
 
-	--SimplePath
+	--NoobPath
 	local pathParams = {
 		AgentHeight = npc:GetExtentsSize().Y,
 		AgentCanJump = true,
@@ -104,7 +104,12 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	local last_of_last
 	local finished
 
-	local path, path_ = SimplePath.new(npc, pathParams)
+	local path, jumpDetection = NoobPath.Humanoid(npc, pathParams)
+	path.Timeout = true -- Off by default, it calculate time necessary to travel between Waypoints and Check if the Character arrived after that amount of time, Trapped will be fired if the Character didn't reach Waypoint in time
+	path.Speed = humanoid.WalkSpeed -- 16 by default, used to allow Timeout calculate time necessary to travel between Waypoints
+	path.Visualize = true -- Off by default, basically generate visual spheres to represent Waypoints
+	path.Interval = 0.05 -- 0.1 by default, determine the frequency of checks about Character's in air / jumping state
+	path.Precise = true -- false by default, determine if the Character should wait until jump complete before begin moving to further waypoints
 
 	--Finding next index
 	if previous then
@@ -237,16 +242,19 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		return
 	end
 
-	path.Blocked:Connect(function()
-		path:Run(current.Position)
+	path.Trapped:Connect(function()
+		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+			path.Jump()
+		end
+		path:Run()
 	end)
 
 	path.Error:Connect(function()
-		path:Run(current.Position)
+		path:Run()
 	end)
 
-	RunService.Heartbeat:Connect(function()
-		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and path.Status == SimplePath.StatusType.Active then
+	while true do
+		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and path.Status == NoobPath.StatusType.Active then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
 			local size = Vector3.new(hrp.Size.X+0.05,1,1)
 			local overlap = OverlapParams.new()
@@ -286,7 +294,8 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 				end
 			end
 		end
-	end)
+		task.wait()
+	end
 end
 
 function wanderer:Run()

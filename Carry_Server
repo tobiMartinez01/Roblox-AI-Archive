@@ -46,8 +46,8 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 				Object_.CollisionGroup = "SelfUncollide"
 			end
 		end
+		Object_.Anchored = false
 		if Object_:GetNetworkOwner() ~= plr then
-			Object_.Anchored = false
 			Object_:SetNetworkOwner(plr)
 		end
 	else

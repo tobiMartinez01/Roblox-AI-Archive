@@ -51,7 +51,7 @@ local function findNearest()
 	local nearestCharacter
 	local nearestDistance
 	for i, character in pairs(workspace:GetDescendants()) do
-		if character:FindFirstChild("Humanoid") and character ~= self then
+		if character:FindFirstChild("Humanoid") and character:FindFirstChild("HumanoidRootPart") and character ~= self then
 			local distance = (character.HumanoidRootPart.Position - hrp.Position).Magnitude
 			if not nearestDistance or distance < nearestDistance then
 				nearestDistance = distance

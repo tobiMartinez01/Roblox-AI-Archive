@@ -1,25 +1,23 @@
+--Self
 local self = script.Parent
-local target
 local humanoid = self.Humanoid
 local hrp = self.HumanoidRootPart
 
 --Set up
-self.PrimaryPart:SetNetworkOwner(nil)
 for i, bodypart in pairs(self:GetDescendants()) do
 	if bodypart:IsA("BasePart") then
 		bodypart.CollisionGroup = "SelfUncollide"
-		bodypart:SetNetworkOwner(nil)
 	end
 end
-
---Libraries
-local SimplePath = require(game.ServerStorage.SimplePath)
 
 --Workspaces
 local RunService = game["Run Service"]
 local PathFindingService = game["PathfindingService"]
 
---SimplePath
+--Libraries
+local NoobPath = require(game.ServerStorage.NoobPath)
+
+--NoobPath
 local pathParams = {
 	AgentHeight = self:GetExtentsSize().Y,
 	AgentCanJump = true,
@@ -35,15 +33,24 @@ local pathParams = {
 		SupportPartialPath = true
 	}
 }
-local path, path_ = SimplePath.new(self, pathParams)
-path.Visualize = true
+local path, jump = NoobPath.Humanoid(self, pathParams)
+path.Timeout = true -- Off by default, it calculate time necessary to travel between Waypoints and Check if the Character arrived after that amount of time, Trapped will be fired if the Character didn't reach Waypoint in time
+path.Speed = humanoid.WalkSpeed -- 16 by default, used to allow Timeout calculate time necessary to travel between Waypoints
+path.Visualize = true -- Off by default, basically generate visual spheres to represent Waypoints
+path.Interval = 0.05 -- 0.1 by default, determine the frequency of checks about Character's in air / jumping state
+path.Precise = true -- false by default, determine if the Character should wait until jump complete before begin moving to further waypoints
 
---Functions
-local function findTarget()
+local function updateValue()
+	if path.Speed ~= humanoid.WalkSpeed then
+		path.Speed = humanoid.WalkSpeed
+	end
+end
+
+local function findNearest()
 	--Get the nearest
 	local nearestCharacter
 	local nearestDistance
-	for i, character in pairs(workspace:GetChildren()) do
+	for i, character in pairs(workspace:GetDescendants()) do
 		if character:FindFirstChild("Humanoid") and character ~= self then
 			local distance = (character.HumanoidRootPart.Position - hrp.Position).Magnitude
 			if not nearestDistance or distance < nearestDistance then
@@ -55,31 +62,13 @@ local function findTarget()
 	return nearestCharacter, nearestDistance
 end
 
-local climb = false
-local waypoints
-
-RunService.Heartbeat:Connect(function()
-	target = findTarget()
+while true do
+	target = findNearest()
 	if target then
-		local target_hrp = target.HumanoidRootPart
 		local target_humanoid = target.Humanoid
+		local target_hrp = target.HumanoidRootPart
 
-		local destination = target.HumanoidRootPart.Position
-
-		if climb == false then
-			path:Run(destination)
-			waypoints = path_:GetWaypoints()
-			for i, wp in pairs(waypoints) do
-				if wp.Label == "Climb" then
-					climb = true
-					break
-				end
-			end
-		else
-			path:Stop()
-			humanoid:MoveTo(waypoints[3].Position)
-			humanoid.MoveToFinished:Wait(1)
-			climb = false
-		end
+		path:Run(target_hrp)
 	end
-end)
+	task.wait()
+end

@@ -121,7 +121,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 		else
 			currentIndex = previousIndex + 1
 		end
-		finished = previous:GetAttribute('Finished')
+		finished = previous:GetAttribute('Finished') or 0
 		previous:SetAttribute('Finished', nil)
 	else
 		if randomized then

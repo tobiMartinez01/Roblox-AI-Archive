@@ -31,6 +31,71 @@ local function findModelThroughPrimaryPart(primarypart)
 	return nil
 end
 
+local interaction = {
+	["Power"] = {
+		"Plug", "Socket"
+	}
+}
+
+local function findInteractModel(obj)
+	local current = obj
+	while current do
+		if current:IsA("Model") then
+			for i, dir in pairs(interaction) do
+				if table.find(dir, current.Name) then
+					return current
+				end
+			end
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
+local function findInteraction(Object1, Object2)
+	for i, dir in pairs(interaction) do
+		if table.find(dir, Object1.Name) and table.find(dir, Object2.Name) then
+			return i
+		end
+	end
+	return nil
+end
+
+--Specific interactions
+
+local function powerDisinteraction(InteractObject_)
+	local Connect = InteractObject_:FindFirstChildWhichIsA("ObjectValue")
+	if Connect then
+		local linkedObject = Connect.Value
+		linkedObject:SetAttribute("Powered", false)
+	else
+		error("No connection")
+	end
+end
+
+local function powerInteraction(InteractPart, InteractObject_)
+	local nearestSocket
+	local nearestDistance = math.huge
+	for i, socket in pairs(InteractPart.PrimaryPart:GetChildren()) do
+		if socket:IsA("Attachment") then
+			local Distance = (InteractObject_.PrimaryPart.Position - socket.WorldPosition).Magnitude
+			if nearestDistance > Distance then
+				nearestSocket = socket
+				nearestDistance = Distance
+			end
+		end
+	end
+	InteractObject_.PrimaryPart.Anchored = true
+	InteractObject_:SetPrimaryPartCFrame(nearestSocket.WorldCFrame)
+	local Connect = InteractObject_:FindFirstChildWhichIsA("ObjectValue")
+	if Connect then
+		local linkedObject = Connect.Value
+		linkedObject:SetAttribute("Powered", true)
+	else
+		error("No connection")
+	end
+end
+
 carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 	if IsCarrying then
 		if Object_.CollisionGroup ~= "SelfUncollide" then
@@ -50,10 +115,15 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 		if Object_:GetNetworkOwner() ~= plr then
 			Object_:SetNetworkOwner(plr)
 		end
+		--Interaction 
+		local InteractObject_ = findInteractModel(Object_)
+		
+		if InteractObject_.Name == "Plug" then
+			powerDisinteraction(InteractObject_)
+		end
 	else
+		local model = findModelThroughPrimaryPart(Object_)
 		if Object_.CollisionGroup ~= "Default" then
-			local model = findModelThroughPrimaryPart(Object_)
-
 			if model then
 				for i, part in pairs(model:GetDescendants()) do
 					if part:IsA("BasePart") then
@@ -64,20 +134,58 @@ carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
 				Object_.CollisionGroup = "Default"
 			end
 		end
+		
+		--Interaction check
+		local InteractObject_ = findInteractModel(Object_) 
+		if InteractObject_ then
+			if not InteractObject_.PrimaryPart then
+				InteractObject_.PrimaryPart = Object_
+			end
+			local overlapParams = OverlapParams.new()
+			overlapParams.RespectCanCollide = true
+			overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+			overlapParams.FilterDescendantsInstances = {Object_}
 
-		coroutine.wrap(function()
-			--local checkpoint = tick()
-			while task.wait(0.2) do
-				local velocity = Object_.Velocity.Magnitude
-				--If lag detector not work then use "tick() - checkpoint >= 5" as a timeout
-				if (velocity < 0.01 and Object_.CollisionGroup == "Default") or Object_.CollisionGroup == "SelfUncollide" then
-					--Check if Object is currently not being holding then set it back to server-side
-					if Object_.CollisionGroup == "Default" then
-						Object_:SetNetworkOwner(nil)
+			local partsInRadius = {}
+			
+			for i, part in ipairs(InteractObject_:GetDescendants()) do
+				if part:IsA("BasePart") then
+					for _, touching in ipairs(part:GetTouchingParts()) do
+						if touching:IsDescendantOf(InteractObject_) then continue end
+						table.insert(partsInRadius, touching)
 					end
-					break
 				end
 			end
-		end)()
+
+			if #partsInRadius > 0 then
+				local InteractPart
+				for i, part in ipairs(partsInRadius) do
+					if InteractPart then break end
+					InteractPart = findInteractModel(part)
+				end
+
+				if InteractPart then
+					local interaction = findInteraction(InteractObject_, InteractPart)
+					if interaction == "Power" then
+						powerInteraction(InteractPart, InteractObject_)
+					end
+				end
+			end
+		else
+			coroutine.wrap(function()
+				--local checkpoint = tick()
+				while task.wait(0.2) do
+					local velocity = Object_.Velocity.Magnitude
+					--If lag detector not work then use "tick() - checkpoint >= 5" as a timeout
+					if (velocity < 0.01 and Object_.CollisionGroup == "Default") or Object_.CollisionGroup == "SelfUncollide" then
+						--Check if Object is currently not being holding then set it back to server-side
+						if Object_.CollisionGroup == "Default" then
+							Object_:SetNetworkOwner(nil)
+						end
+						break
+					end
+				end
+			end)()
+		end
 	end
 end

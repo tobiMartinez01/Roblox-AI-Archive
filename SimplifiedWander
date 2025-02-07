@@ -256,7 +256,7 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	while true do
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not path.Idle then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-			local size = Vector3.new(hrp.Size.X+0.05,1,1)
+			local size = Vector3.new(hrp.Size.Z/2+0.05,1,1)
 			local overlap = OverlapParams.new()
 			overlap.RespectCanCollide = true
 			overlap.FilterType = Enum.RaycastFilterType.Exclude

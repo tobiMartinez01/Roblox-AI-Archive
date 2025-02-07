@@ -1,0 +1,270 @@
+local toolbar = plugin:CreateToolbar('Physics Helper')
+local openUI = toolbar:CreateButton("Physics Helper", "Open the UI", "rbxassetid://18406094706")
+openUI.ClickableWhenViewportHidden = true
+
+local uiProperties = DockWidgetPluginGuiInfo.new(
+	Enum.InitialDockState.Float, -- Default docking state
+	false,  -- Don't override previous session state
+	false,  -- Initially disabled
+	350,    -- Min Width
+	500,    -- Min Height
+	350,    -- Default Width
+	500     -- Default Height
+)
+
+local widget = plugin:CreateDockWidgetPluginGui(
+	"Physics Oddyssey Widget!!",
+	uiProperties
+)
+
+--Open/Close
+openUI.Click:Connect(function()
+	widget.Enabled = not widget.Enabled
+end)
+
+--Create UIs / Functions
+local changeHistory = game:GetService("ChangeHistoryService")
+local selection = game:GetService("Selection")
+local TweenService = game.TweenService
+
+local ui = script.Parent.ui
+ui.Parent = widget
+local viewable = Instance.new("ScreenGui", game.CoreGui)
+viewable.IgnoreGuiInset = true
+viewable.Name = "PrimaryPartPrompt"
+	
+local content = ui.content
+
+--Variables
+local checkbox_state
+local primaryPartThread
+local errors = {}
+
+--contents
+local canBeCarried = content.canbecarried
+local modelweld = content.weld
+
+--PrimaryPartPrompt
+local primaryPartPrompt = script.Parent.primaryPart
+local primaryPartPrompt_appear = TweenService:Create(primaryPartPrompt, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {GroupTransparency = 0})
+local primaryPartPrompt_disappear = TweenService:Create(primaryPartPrompt, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {GroupTransparency = 1})
+
+--Checkbox ImageIDs
+local checkbox = {
+	indetermined_checkbox = {
+		id = "rbxassetid://8445519147",
+		offset = Vector2.new(4, 732)
+	},
+	blank_checkbox = {
+		id = "rbxassetid://8445519745",
+		offset = Vector2.new(940, 784)
+	},
+	checked_checkbox = {
+		id = "rbxassetid://8445519745",
+		offset = Vector2.new(4, 836)
+	}
+}
+
+--Set waypoints to undo/redo
+local function setWaypoint(desc)
+	changeHistory:SetWaypoint(desc)
+end
+
+--Find CanBeCarried
+local function findCarriableAncestor(target)
+	local current = target
+	while current do
+		if current:IsA("BasePart") then
+			if current:FindFirstChild("CarryPoint") then
+				if current:FindFirstChild("CarryPoint"):IsA("Attachment") then
+					return true
+				else
+					warn("CarryPoint must be an Attachment!")
+					return false
+				end
+			end
+		elseif current:IsA("Model") then
+			local primarypart = current.PrimaryPart
+			if primarypart then
+				if primarypart:FindFirstChild("CarryPoint") then
+					if primarypart:FindFirstChild("CarryPoint"):IsA("Attachment") then
+						return true
+					else
+						warn("CarryPoint must be an Attachment!")
+						return false
+					end
+				end
+			end
+		end
+		current = current.Parent
+	end
+	return false
+end
+
+--Model weld
+local function clearweld(model)
+	for i, v1 in pairs(model:GetDescendants()) do
+		if v1:IsA("BasePart") then
+			v1.Anchored = true
+		elseif v1:IsA("Weld") or v1:IsA("WeldConstraint") then
+			v1:Destroy()
+		end
+	end
+end
+
+local function modelWeld(model)
+	clearweld(model)
+	for i, v1 in pairs(model:GetDescendants()) do
+		if v1:IsA("BasePart") then 
+			if v1 ~= model.PrimaryPart then
+				local position = v1.Position
+				local rotation = v1.Orientation
+				local weld = Instance.new("WeldConstraint", v1)
+				weld.Part0 = model.PrimaryPart
+				weld.Part1 = v1
+				v1.Anchored = false
+				v1.Position = position
+				v1.Orientation = rotation
+			else
+				v1.Anchored = true 
+			end
+		end 
+	end
+end
+
+--PrimaryPart prompt
+local function resetPrompt()
+	if primaryPartThread then
+		coroutine.close(primaryPartThread)
+		primaryPartThread = nil
+	end
+end
+
+local function primaryPart_popup()
+	primaryPartPrompt.GroupTransparency = 1
+	primaryPartPrompt.Parent = viewable
+	primaryPartPrompt_appear:Play()
+	local c; c = primaryPartPrompt.button.MouseButton1Click:Connect(function()
+		resetPrompt()
+		primaryPartPrompt_disappear:Play()
+		task.wait(0.5)
+		primaryPartPrompt.Parent = script.Parent
+		resetPrompt()
+		c:Disconnect()
+	end)
+	task.wait(5)
+	primaryPartPrompt_disappear:Play()
+	task.wait(0.5)
+	primaryPartPrompt.Parent = script.Parent
+end
+
+local function primaryPartPrompt()
+	selection:Set(errors)
+	resetPrompt()
+	primaryPartThread = coroutine.create(primaryPart_popup)
+	coroutine.resume(primaryPartThread)
+end
+
+--Selection refresh
+local function selectFunction()
+	local selectedItems = selection:Get()
+	--Get CanBeCarried to determine checkbox state
+	local carriedTrue = 0
+	local carriedFalse = 0
+	for i, item in ipairs(selectedItems) do
+		if findCarriableAncestor(item) then
+			carriedTrue+=1
+		else
+			carriedFalse+=1
+		end
+	end
+	-- true,  false, indetermined
+	if carriedTrue > 0 and carriedFalse == 0 then
+		canBeCarried.button.Image = checkbox.checked_checkbox.id
+		canBeCarried.button.ImageRectOffset = checkbox.checked_checkbox.offset 
+		checkbox_state = true
+	elseif carriedFalse > 0 and carriedTrue == 0 then
+		canBeCarried.button.Image = checkbox.blank_checkbox.id
+		canBeCarried.button.ImageRectOffset = checkbox.blank_checkbox.offset
+		checkbox_state = false
+	elseif carriedFalse > 0 and carriedTrue > 0 then
+		canBeCarried.button.Image = checkbox.indetermined_checkbox.id
+		canBeCarried.button.ImageRectOffset = checkbox.indetermined_checkbox.offset
+		checkbox_state = nil
+	else
+		canBeCarried.button.Image = ""
+		checkbox_state = nil
+	end
+end
+
+--Buttons
+canBeCarried.button.MouseButton1Click:Connect(function()
+	errors = {}
+	local selectedItems = selection:Get()
+	for i, item in ipairs(selectedItems) do
+		if not checkbox_state then
+			if item:IsA("BasePart") then
+				local CarryPoint = Instance.new("Attachment", item)
+				CarryPoint.Name = "CarryPoint"
+			end
+			
+			if item:IsA("Model") then
+				if item.PrimaryPart then
+					modelWeld(item)
+					local CarryPoint = Instance.new("Attachment", item.PrimaryPart)
+					CarryPoint.Name = "CarryPoint"
+				else
+					table.insert(errors, item)
+				end
+			end
+		else
+			if item:IsA("BasePart") or item:IsA("Model") then
+				clearweld(item)
+			end
+			
+			for i, instance in pairs(item:GetDescendants()) do
+				if instance.Name == "CarryPoint" and instance:IsA("Attachment") then
+					instance:Destroy()
+				end
+			end
+		end
+	end
+
+	if #errors > 0 then
+		primaryPartPrompt()
+	else
+		selectFunction()
+	end
+end)
+
+modelweld.Weld.MouseButton1Click:Connect(function()
+	errors = {}
+	local selectedItems = selection:Get()
+	for i, model in pairs(selectedItems) do
+		if model:IsA("Model") then
+			if model.PrimaryPart then
+				modelWeld(model)
+			else
+				table.insert(errors, model)
+			end
+		end
+	end
+	
+	if #errors > 0 then
+		primaryPartPrompt()
+	end
+end)
+
+modelweld.Clear.MouseButton1Click:Connect(function()
+	local selectedItems = selection:Get()
+	for i, model in pairs(selectedItems) do
+		if model:IsA("Model") then
+			clearweld(model)
+		end
+	end
+end)
+
+--Selection
+selection.SelectionChanged:Connect(function()
+	selectFunction()
+end)

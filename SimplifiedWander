@@ -18,10 +18,32 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	--Insert but OOP style :P aka custom properties
 	new_wander.Agent = agent
 	new_wander.Path = path
-	new_wander.Costs = costs
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
+	
+	--Creating Operator
+	local pathParams = {
+		AgentHeight = agent:GetExtentsSize().Y,
+		AgentCanJump = true,
+		AgentCanClimb = true,
+		--AgentRadius = 2, --Changing this can cause the agent to not running correctly
+		--WaypointSpacing = 1.5,
+		Costs = costs,
+		PathSettings = {
+			SupportPartialPath = true
+		}
+	}
+	--Set up Operator
+	new_wander.PathOperator = NoobPath.Humanoid(agent, pathParams)
+	
+	--Setting collisionGroup
+	for i, bodypart in pairs(agent:GetDescendants()) do
+		if bodypart:IsA("BasePart") then
+			bodypart.CollisionGroup = "SelfUncollide"
+		end
+	end
 
+	--Stares
 	local attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
 	attachment0.CFrame = CFrame.Angles(0, math.rad(90), 0)
 
@@ -33,11 +55,14 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	alignOrientation.AlignType = Enum.AlignType.PrimaryAxisLookAt
 	alignOrientation.ReactionTorqueEnabled = true
 	alignOrientation.Attachment0 = attachment0
+	alignOrientation.Enabled = false
 
 	new_wander.Attachment0 = attachment0
 	new_wander.AlignOrientation = alignOrientation
 
 	--Events
+	
+	--Reached event
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
 	new_wander.Reached = new_wander.ReachedBindable.Event 
 
@@ -56,207 +81,128 @@ function lookDisable(self)
 	self.AlignOrientation.Enabled = false
 end
 
-local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previousIndex)
+local function Run(self, npc, pathFolder, debounce, randomized)
+	--Calling agent
 	local humanoid = npc.Humanoid
 	local hrp = npc.HumanoidRootPart
-
-	--Set up
-	for i, bodypart in pairs(npc:GetDescendants()) do
-		if bodypart:IsA("BasePart") then
-			bodypart.CollisionGroup = "SelfUncollide"
-			bodypart:SetNetworkOwner(nil)
-		end
-	end
-
+	
+	--Caling pathOperator
+	local operator = self.PathOperator
+	
+	--Params
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterDescendantsInstances = {npc}
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	raycastParams.RespectCanCollide = true
 	raycastParams.IgnoreWater = true
-
-	--NoobPath
-	local pathParams = {
-		AgentHeight = npc:GetExtentsSize().Y,
-		AgentCanJump = true,
-		AgentCanClimb = true,
-		--AgentRadius = 2, --Changing this can cause the agent to not running correctly
-		--WaypointSpacing = 1.5,
-		Costs = costs,
-		PathSettings = {
-			SupportPartialPath = true
-		}
-	}
-
-	local path_waypoints = {}
-	for i, waypoint in ipairs(GetPathFrom:GetChildren()) do
+	
+	local pathWaypoints = {}
+	
+	--Getting waypoints data
+	local export_
+	
+	if type(pathFolder) == "table" then
+		export_= pathFolder
+	else
+		export_= pathFolder:GetChildren()
+	end
+	
+	for i, waypoint in pairs(export_) do
 		if waypoint:IsA("BasePart") then
-			table.insert(path_waypoints, waypoint)
+			table.insert(pathWaypoints, waypoint)
 		end
 	end
-	table.sort(path_waypoints, function(a, b)
+	--Sort data
+	table.sort(pathWaypoints, function(a, b)
 		return tonumber(a.Name) < tonumber(b.Name)
 	end)
-
+	
+	--Variables
 	local currentIndex
-	local current
-	local previous = path_waypoints[previousIndex]
-	local last
-	local last_of_last
-	local finished
-
-	local path, jumpDetection = NoobPath.Humanoid(npc, pathParams)
-	path.Timeout = true -- Off by default, it calculate time necessary to travel between Waypoints and Check if the Character arrived after that amount of time, Trapped will be fired if the Character didn't reach Waypoint in time
-	path.Speed = humanoid.WalkSpeed -- 16 by default, used to allow Timeout calculate time necessary to travel between Waypoints
-	path.Visualize = false -- Off by default, basically generate visual spheres to represent Waypoints
-	path.Interval = 0.05 -- 0.1 by default, determine the frequency of checks about Character's in air / jumping state
-	path.Precise = true -- false by default, determine if the Character should wait until jump complete before begin moving to further waypoints
-
-	--Finding next index
-	if previous then
+	local currentWaypoint
+	
+	local lastWaypoint = nil
+	local lastWaypoint2 = nil
+	
+	local reached = 0
+	
+	--Finding next waypoint
+	local function nextIndex(selectedPath)
+		--Saving last waypoints (for effective rng)
+		lastWaypoint2 = lastWaypoint
+		lastWaypoint = currentWaypoint
+		
+		--Overidding debounce and randomized
+		if currentWaypoint then
+			debounce = currentWaypoint:GetAttribute('Debounce')
+			randomized = currentWaypoint:GetAttribute('Randomized')
+		end
+		
 		if randomized then
+			--Random
 			repeat
-				currentIndex = math.random(1, #path_waypoints)
-				task.wait()
-			until currentIndex ~= previousIndex
+				currentIndex = random(1, #selectedPath)
+				currentWaypoint = selectedPath[currentIndex]
+			until #selectedPath < 3 or (currentWaypoint ~= lastWaypoint and currentWaypoint ~= lastWaypoint2)
+			
+			currentWaypoint = selectedPath[currentIndex]
 		else
-			currentIndex = previousIndex + 1
-		end
-		finished = previous:GetAttribute('Finished') or 0
-		previous:SetAttribute('Finished', nil)
-	else
-		if randomized then
-			currentIndex = math.random(1, #path_waypoints) 
-		else
-			currentIndex = 1
-		end
-		finished = 0
-	end
-
-	current = path_waypoints[currentIndex]
-
-	local function wander(_delay)
-		current = path_waypoints[currentIndex]
-		--print(npc.Name .. " is going to: " .. tostring(current))
-		current:SetAttribute("Unavailable", true)
-		task.wait(_delay)
-		lookDisable(self)
-		path:Run(current.Position)
-	end
-
-	local function upper_route()
-		if GetPathFrom.Parent then				
-			local continue_wp = {}
-
-			for i, waypoint in ipairs(GetPathFrom.Parent:GetChildren()) do
-				if waypoint:IsA("BasePart") then
-					table.insert(continue_wp, waypoint)
-				end
-			end
-
-			table.sort(continue_wp, function(a, b)
-				return tonumber(a.Name) < tonumber(b.Name)
-			end)
-
-			local current_index_ = table.find(continue_wp, GetPathFrom)
-
-			Run(self, npc, GetPathFrom.Parent, costs, GetPathFrom:GetAttribute('Debounce'), GetPathFrom:GetAttribute('Randomized'), current_index_)
+			--In order
+			currentIndex+=1
+			
+			currentWaypoint = selectedPath[currentIndex]
 		end
 	end
-
-	path.Reached:Connect(function()
-		finished+=1
-		invokeReached(self, currentIndex)
-		local reached_wp = current
-		reached_wp:SetAttribute("Unavailable", nil)
-		debounce = reached_wp:GetAttribute('Debounce') or debounce
-		randomized = reached_wp:GetAttribute('Randomized') or randomized 
-
-		if reached_wp:FindFirstChildWhichIsA("Attachment") then
-			local lookPoint = reached_wp:FindFirstChildWhichIsA("Attachment")
-			repeat
-				task.wait()
-			until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall
-			lookEnable(self)
-			local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
-			self.AlignOrientation.LookAtPosition = fixedLookAtPos
-		end
-
-		local sub = reached_wp:GetChildren()
-		local sub_waypoints = {}
-
-		for i, wp in ipairs(sub) do
-			if wp:IsA("BasePart") then
-				table.insert(sub_waypoints, wp)
-			end
-		end
-
-		if #sub_waypoints > 0 then
-			reached_wp:SetAttribute('Finished', finished)
-			local sub_debounce = reached_wp:GetAttribute('Sub_Debounce')
-			local sub_randomized = reached_wp:GetAttribute('Sub_Randomized')
-			Run(self, npc, reached_wp, costs, sub_debounce, sub_randomized)
-			return
-		end
-
-		--print(npc, finished, #path_waypoints)
-
-		last_of_last = last
-		last = currentIndex
-
-		if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
-			--print("Reroll")
-			if randomized then
-				if #path_waypoints > 3 then
-					repeat
-						currentIndex = math.random(1, #path_waypoints) 
-						task.wait()
-					until currentIndex ~= last and currentIndex ~= last_of_last and current:GetAttribute("Unavailable") == nil
-				else
-					repeat
-						currentIndex = math.random(1, #path_waypoints) 
-						task.wait()
-					until currentIndex ~= last and current:GetAttribute("Unavailable") == nil
-				end
-			else
-				repeat
-					currentIndex+=1
-					if currentIndex > #path_waypoints then
-						currentIndex = 1
-					end
-					task.wait()
-				until current:GetAttribute("Unavailable") == nil
-			end
+	
+	--Walk
+	local function goTo(selectedPath)
+		reached+=1
+		--Find next index
+		nextIndex(selectedPath)
+		
+		--Yield depending on previous waypoint set Debounce
+		if reached == 0 and pathFolder == self.Path  then
+			task.wait(0)
 		else
-			upper_route()
-			return
+			task.wait(debounce)
 		end
 
-		wander(debounce)
-	end)
+		--Run
+		operator:Run(currentWaypoint.Position)
+		
+		--Connections
+		local error_
+		local trapped_
+		
+		error_ = operator.Error:Connect(function()
+			operator:Run(currentWaypoint.Position)
+		end)
+		
+		trapped_ = operator.Trapped:Connect(function()
+			operator:Run(currentWaypoint.Position)
+		end)
 
-	if (finished < #path_waypoints) or (GetPathFrom == self.Path) then
-		if previous then
-			wander(previous:GetAttribute('Debounce') or 0)
-		else
-			wander(0)
-		end
-	else
-		upper_route()
-		return
+		--Cleanup and stopping the loop
+		local reachedEvent
+
+		reachedEvent = operator.Reached:Connect(function()
+			--Cleanup
+			error_:Disconnect()
+			trapped_:Disconnect()
+			reachedEvent:Disconnect()
+			--Loop
+			goTo(pathWaypoints)
+		end)
 	end
-
-	path.Trapped:Connect(function()
-		path:Run(current.Position)
-	end)
-
-	path.Error:Connect(function()
-		path:Run(current.Position)
-	end)
-
-	while true do
-		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not path.Idle then
+	
+	--Run for the first time
+	goTo(pathWaypoints)
+	
+	--Jump
+	while task.wait() do
+		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not operator.Idle then
 			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-			local size = Vector3.new(1, hrp.Size.Y, 1)
+			local size = Vector3.new(2, hrp.Size.Y, 2)
 			local overlap = OverlapParams.new()
 			overlap.RespectCanCollide = true
 			overlap.FilterType = Enum.RaycastFilterType.Exclude
@@ -294,12 +240,11 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 				end
 			end
 		end
-		task.wait()
 	end
 end
 
 function wanderer:Run()
-	Run(self, self.Agent, self.Path, self.Costs, self.Debounce, self.Randomized)
+	Run(self, self.Agent, self.Path, self.Debounce, self.Randomized)
 end
 
 return wanderer

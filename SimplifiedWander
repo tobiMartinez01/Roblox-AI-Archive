@@ -65,6 +65,55 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	--Reached event
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
 	new_wander.Reached = new_wander.ReachedBindable.Event 
+	
+	coroutine.wrap(function()
+		--Jump
+		local humanoid = agent.Humanoid
+		local hrp = agent.HumanoidRootPart
+
+		while task.wait() do
+			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not new_wander.PathOperator.Idle then
+				local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
+				local size = Vector3.new(2, hrp.Size.Y, 2)
+				local overlap = OverlapParams.new()
+				overlap.RespectCanCollide = true
+				overlap.FilterType = Enum.RaycastFilterType.Exclude
+				overlap.FilterDescendantsInstances = {npc}
+				local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
+
+				for i, part in pairs(obstacle) do
+					if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+						if part.ClassName ~= "TrussPart" then
+							if part.Transparency ~= 1 then
+								local sides = {
+									front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+									down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+								}
+
+								local highestSurface = nil
+								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+
+								for side, position in pairs(sides) do
+									if position.Y > highestY then
+										highestY = position.Y
+										highestSurface = side
+									end
+								end
+
+								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+									humanoid.Jump = true
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)()
 
 	return new_wander
 end
@@ -197,50 +246,6 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 	
 	--Run for the first time
 	goTo(pathWaypoints)
-	
-	--Jump
-	while task.wait() do
-		if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not operator.Idle then
-			local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-			local size = Vector3.new(2, hrp.Size.Y, 2)
-			local overlap = OverlapParams.new()
-			overlap.RespectCanCollide = true
-			overlap.FilterType = Enum.RaycastFilterType.Exclude
-			overlap.FilterDescendantsInstances = {npc}
-			local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
-
-			for i, part in pairs(obstacle) do
-				if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-					if part.ClassName ~= "TrussPart" then
-						if part.Transparency ~= 1 then
-							local sides = {
-								front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-								back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-								right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-								left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-								up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-								down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-							}
-
-							local highestSurface = nil
-							local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
-
-							for side, position in pairs(sides) do
-								if position.Y > highestY then
-									highestY = position.Y
-									highestSurface = side
-								end
-							end
-
-							if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-								humanoid.Jump = true
-							end
-						end
-					end
-				end
-			end
-		end
-	end
 end
 
 function wanderer:Run()

@@ -1,6 +1,20 @@
 local toolbar = plugin:CreateToolbar('Physics Helper')
-local openUI = toolbar:CreateButton("Physics Helper", "Open the UI", "rbxassetid://18406094706")
+
+--Detect product version
+local IsLocal = if string.find(plugin.Name, ".rbxm") or string.find(plugin.Name, ".lua") then true else false
+
+local openUI
+if IsLocal then
+	openUI = toolbar:CreateButton("Physics Helper (Debug)", "Open the UI", "rbxassetid://10537616254")
+else
+	openUI = toolbar:CreateButton("Physics Helper", "Open the UI", "rbxassetid://18406094706")
+end
 openUI.ClickableWhenViewportHidden = true
+
+--Client signal
+local remoteFunction = script.Parent.RemoteFunction
+local userID = game:GetService("StudioService"):GetUserId()
+remoteFunction:InvokeClient(game.Players:GetPlayerByUserId(userID))
 
 local uiProperties = DockWidgetPluginGuiInfo.new(
 	Enum.InitialDockState.Float, -- Default docking state
@@ -16,38 +30,35 @@ local widget = plugin:CreateDockWidgetPluginGui(
 	"Physics Oddyssey Widget!!",
 	uiProperties
 )
-
---Open/Close
-openUI.Click:Connect(function()
-	widget.Enabled = not widget.Enabled
-end)
+widget.Title = 'PhysicsHelper'
+widget.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 --Create UIs / Functions
 local changeHistory = game:GetService("ChangeHistoryService")
 local selection = game:GetService("Selection")
 local TweenService = game.TweenService
 
+--Getting contents
 local ui = script.Parent.ui
-ui.Parent = widget
-local viewable = Instance.new("ScreenGui", game.CoreGui)
-viewable.IgnoreGuiInset = true
-viewable.Name = "PrimaryPartPrompt"
-	
 local content = ui.content
+ui.Parent = widget
 
---Variables
-local checkbox_state
-local primaryPartThread
-local errors = {}
-
---contents
 local canBeCarried = content.canbecarried
 local modelweld = content.weld
 
---PrimaryPartPrompt
-local primaryPartPrompt = script.Parent.primaryPart
-local primaryPartPrompt_appear = TweenService:Create(primaryPartPrompt, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {GroupTransparency = 0})
-local primaryPartPrompt_disappear = TweenService:Create(primaryPartPrompt, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {GroupTransparency = 1})
+--Getting CoreGui
+for i, prompt in pairs(game.CoreGui:GetChildren()) do
+	if prompt.Name == "PrimaryPartPrompt" then
+		prompt:Destroy()
+	end 
+end
+local viewable = Instance.new("ScreenGui", game.CoreGui)
+viewable.IgnoreGuiInset = true
+viewable.Name = "PrimaryPartPrompt"
+
+--Variables
+local checkbox_state
+local errors = {}
 
 --Checkbox ImageIDs
 local checkbox = {
@@ -132,35 +143,70 @@ local function modelWeld(model)
 	end
 end
 
---PrimaryPart prompt
+--Calling prompt
+local primaryPartPrompt = ui.warning
+local primaryPartPrompt_appear = TweenService:Create(primaryPartPrompt, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {GroupTransparency = 0})
+local primaryPartPrompt_disappear = TweenService:Create(primaryPartPrompt, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {GroupTransparency = 1})
+--Calling threads
+local primaryPartThread
+local closingThread
+local skipPrompt
+
+local function showPrompt(title, desc)
+	--Set up
+	primaryPartPrompt.GroupTransparency = 1
+	primaryPartPrompt.Visible = true
+	
+	--Override prompt title and description
+	primaryPartPrompt.title.Text = title
+	primaryPartPrompt.desc.Text = desc
+	
+	primaryPartPrompt_appear:Play()
+	
+	task.wait(5)
+
+	primaryPartPrompt_disappear:Play()
+
+	task.wait(0.5)
+
+	primaryPartPrompt.Visible = false
+end
+
 local function resetPrompt()
+	--Closing threads and functions
+	
 	if primaryPartThread then
 		coroutine.close(primaryPartThread)
-		primaryPartThread = nil
+	end
+	
+	if closingThread then
+		coroutine.close(closingThread)
+	end
+	
+	if skipPrompt then
+		skipPrompt:Disconnect()
 	end
 end
 
 local function primaryPart_popup()
-	primaryPartPrompt.GroupTransparency = 1
-	primaryPartPrompt.Parent = viewable
-	primaryPartPrompt_appear:Play()
-	local c; c = primaryPartPrompt.button.MouseButton1Click:Connect(function()
-		resetPrompt()
+	--Fadde after ~5 seconds
+	closingThread = coroutine.create(showPrompt)
+	
+	coroutine.resume(closingThread, "Model(s) is missing PrimaryPart", "Please set PrimaryPart to the models")
+	
+	--Skip the prompt
+	skipPrompt = primaryPartPrompt.button.MouseButton1Click:Connect(function()
 		primaryPartPrompt_disappear:Play()
-		task.wait(0.5)
-		primaryPartPrompt.Parent = script.Parent
 		resetPrompt()
-		c:Disconnect()
 	end)
-	task.wait(5)
-	primaryPartPrompt_disappear:Play()
-	task.wait(0.5)
-	primaryPartPrompt.Parent = script.Parent
 end
 
 local function primaryPartPrompt()
-	selection:Set(errors)
+	--Reset the prompt
 	resetPrompt()
+	--Select malfunctioned models
+	selection:Set(errors)
+	--Create new thread
 	primaryPartThread = coroutine.create(primaryPart_popup)
 	coroutine.resume(primaryPartThread)
 end
@@ -197,7 +243,13 @@ local function selectFunction()
 	end
 end
 
---Buttons
+selection.SelectionChanged:Connect(function()
+	selectFunction()
+end)
+
+--Buttons function
+
+--Toggle CanBeCarried
 canBeCarried.button.MouseButton1Click:Connect(function()
 	errors = {}
 	local selectedItems = selection:Get()
@@ -237,6 +289,7 @@ canBeCarried.button.MouseButton1Click:Connect(function()
 	end
 end)
 
+--Model weld
 modelweld.Weld.MouseButton1Click:Connect(function()
 	errors = {}
 	local selectedItems = selection:Get()
@@ -252,6 +305,8 @@ modelweld.Weld.MouseButton1Click:Connect(function()
 	
 	if #errors > 0 then
 		primaryPartPrompt()
+	else
+		selectFunction()
 	end
 end)
 
@@ -264,7 +319,8 @@ modelweld.Clear.MouseButton1Click:Connect(function()
 	end
 end)
 
---Selection
-selection.SelectionChanged:Connect(function()
-	selectFunction()
+--Open/Close
+openUI.Click:Connect(function()
+	widget.Enabled = not widget.Enabled
+	viewable.Enabled = widget.Enabled 
 end)

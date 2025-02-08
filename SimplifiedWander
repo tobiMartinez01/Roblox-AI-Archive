@@ -166,18 +166,15 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 		else
 			task.wait(debounce)
 		end
-
-		--Run
-		operator:Run(currentWaypoint.Position)
 		
 		--Connections
 		local error_
 		local trapped_
-		
+
 		error_ = operator.Error:Connect(function()
 			operator:Run(currentWaypoint.Position)
 		end)
-		
+
 		trapped_ = operator.Trapped:Connect(function()
 			operator:Run(currentWaypoint.Position)
 		end)
@@ -193,6 +190,9 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 			--Loop
 			goTo(pathWaypoints)
 		end)
+
+		--Run
+		operator:Run(currentWaypoint.Position)
 	end
 	
 	--Run for the first time

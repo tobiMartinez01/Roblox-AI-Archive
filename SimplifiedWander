@@ -66,11 +66,12 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
 	new_wander.Reached = new_wander.ReachedBindable.Event 
 	
+	
+	--Jump
+	local humanoid = agent.Humanoid
+	local hrp = agent.HumanoidRootPart
+	
 	coroutine.wrap(function()
-		--Jump
-		local humanoid = agent.Humanoid
-		local hrp = agent.HumanoidRootPart
-
 		while task.wait() do
 			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not new_wander.PathOperator.Idle then
 				local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
@@ -205,7 +206,6 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 	
 	--Walk
 	local function goTo(selectedPath)
-		reached+=1
 		--Find next index
 		nextIndex(selectedPath)
 		
@@ -232,6 +232,7 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 		local reachedEvent
 
 		reachedEvent = operator.Reached:Connect(function()
+			reached+=1
 			--Cleanup
 			error_:Disconnect()
 			trapped_:Disconnect()

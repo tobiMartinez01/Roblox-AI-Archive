@@ -246,11 +246,11 @@ local function Run(self, npc, GetPathFrom, costs, debounce, randomized, previous
 	end
 
 	path.Trapped:Connect(function()
-		path:Run()
+		path:Run(current.Position)
 	end)
 
 	path.Error:Connect(function()
-		path:Run()
+		path:Run(current.Position)
 	end)
 
 	while true do

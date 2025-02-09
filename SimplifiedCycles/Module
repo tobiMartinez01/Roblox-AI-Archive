@@ -197,7 +197,13 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 		else
 			--In order
 			currentIndex+=1
+			
+			if currentIndex > #pathWaypoints then
+				currentIndex = 1
+			end
+			
 		end
+		
 		currentWaypoint = selectedPath[currentIndex]
 		currentWaypoint:SetAttribute("Unavailable", true)
 	end

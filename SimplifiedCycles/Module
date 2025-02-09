@@ -20,7 +20,7 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.Path = path
 	new_wander.Debounce = defaultDebounce
 	new_wander.Randomized = randomized
-	
+
 	--Creating Operator
 	local pathParams = {
 		AgentHeight = agent:GetExtentsSize().Y,
@@ -35,7 +35,7 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	}
 	--Set up Operator
 	new_wander.PathOperator = NoobPath.Humanoid(agent, pathParams)
-	
+
 	--Setting collisionGroup
 	for i, bodypart in pairs(agent:GetDescendants()) do
 		if bodypart:IsA("BasePart") then
@@ -61,16 +61,16 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	new_wander.AlignOrientation = alignOrientation
 
 	--Events
-	
+
 	--Reached event
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
 	new_wander.Reached = new_wander.ReachedBindable.Event 
-	
-	
+
+
 	--Jump
 	local humanoid = agent.Humanoid
 	local hrp = agent.HumanoidRootPart
-	
+
 	coroutine.wrap(function()
 		while task.wait() do
 			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not new_wander.PathOperator.Idle then
@@ -135,28 +135,28 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 	--Calling agent
 	local humanoid = npc.Humanoid
 	local hrp = npc.HumanoidRootPart
-	
+
 	--Caling pathOperator
 	local operator = self.PathOperator
-	
+
 	--Params
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterDescendantsInstances = {npc}
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	raycastParams.RespectCanCollide = true
 	raycastParams.IgnoreWater = true
-	
+
 	local pathWaypoints = {}
-	
+
 	--Getting waypoints data
 	local export_
-	
+
 	if type(pathFolder) == "table" then
 		export_= pathFolder
 	else
 		export_= pathFolder:GetChildren()
 	end
-	
+
 	for i, waypoint in pairs(export_) do
 		if waypoint:IsA("BasePart") then
 			table.insert(pathWaypoints, waypoint)
@@ -166,56 +166,53 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 	table.sort(pathWaypoints, function(a, b)
 		return tonumber(a.Name) < tonumber(b.Name)
 	end)
-	
+
 	--Variables
 	local currentIndex
 	local currentWaypoint
-	
+
 	local lastWaypoint = nil
 	local lastWaypoint2 = nil
-	
+
 	local reached = 0
-	
+
 	--Finding next waypoint
 	local function nextIndex(selectedPath)
 		--Saving last waypoints (for effective rng)
 		lastWaypoint2 = lastWaypoint
 		lastWaypoint = currentWaypoint
-		
+
 		--Overidding debounce and randomized
 		if currentWaypoint then
 			debounce = currentWaypoint:GetAttribute('Debounce')
 			randomized = currentWaypoint:GetAttribute('Randomized')
 		end
-		
+
 		if randomized then
 			--Random
 			repeat
 				currentIndex = random(1, #selectedPath)
 				currentWaypoint = selectedPath[currentIndex]
-			until #selectedPath < 3 or (currentWaypoint ~= lastWaypoint and currentWaypoint ~= lastWaypoint2)
-			
-			currentWaypoint = selectedPath[currentIndex]
+			until (#selectedPath < 4 or (currentWaypoint ~= lastWaypoint and currentWaypoint ~= lastWaypoint2)) and selectedPath[currentIndex]:GetAttribute('Unvailable') == nil
 		else
 			--In order
 			currentIndex+=1
-			
-			currentWaypoint = selectedPath[currentIndex]
 		end
+		currentWaypoint = selectedPath[currentIndex]
+		currentWaypoint:SetAttribute("Unavailable", true)
 	end
-	
+
 	--Walk
 	local function goTo(selectedPath)
 		--Find next index
 		nextIndex(selectedPath)
-		
 		--Yield depending on previous waypoint set Debounce
 		if reached == 0 and pathFolder == self.Path  then
 			task.wait(0)
 		else
 			task.wait(debounce)
 		end
-		
+
 		--Connections
 		local error_
 		local trapped_
@@ -234,6 +231,7 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 		reachedEvent = operator.Reached:Connect(function()
 			reached+=1
 			--Cleanup
+			currentWaypoint:SetAttribute("Unavailable", nil)
 			error_:Disconnect()
 			trapped_:Disconnect()
 			reachedEvent:Disconnect()
@@ -244,7 +242,7 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 		--Run
 		operator:Run(currentWaypoint.Position)
 	end
-	
+
 	--Run for the first time
 	goTo(pathWaypoints)
 end

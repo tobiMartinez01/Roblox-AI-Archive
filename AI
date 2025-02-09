@@ -59,28 +59,34 @@ end
 local climb = false
 local waypoints
 
-while task.wait() do
-	target = findNearest()
-	if target then
-		local target_hrp = target.HumanoidRootPart
-		local target_humanoid = target.Humanoid
+local heartbeatDebounce = false
 
-		local destination = target.HumanoidRootPart.Position
+RunService.Heartbeat:Connect(function(dt)
+	if heartbeatDebounce == false then
+		heartbeatDebounce = true
+		local target = findNearest()
+		if target then
+			local target_hrp = target.HumanoidRootPart
+			local target_humanoid = target.Humanoid
 
-		if climb == false then
-			path:Run(destination)
-			waypoints = path.Route
-			for i, wp in pairs(waypoints) do
-				if wp.Label == "Climb" then
-					climb = true
-					break
+			local destination = target.HumanoidRootPart.Position
+
+			if climb == false then
+				path:Run(destination)
+				waypoints = path.Route
+				for i, wp in pairs(waypoints) do
+					if wp.Label == "Climb" then
+						climb = true
+						break
+					end
 				end
+			else
+				path:Stop()
+				humanoid:MoveTo(waypoints[3].Position)
+				humanoid.MoveToFinished:Wait(1)
+				climb = false
 			end
-		else
-			path:Stop()
-			humanoid:MoveTo(waypoints[3].Position)
-			humanoid.MoveToFinished:Wait(1)
-			climb = false
 		end
+		heartbeatDebounce = false
 	end
-end
+end)

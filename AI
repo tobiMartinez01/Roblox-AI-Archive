@@ -75,8 +75,8 @@ while true do
 
 		if climb == false then
 			path:Run(destination)
-			waypoints = path:GetWaypoints()
-			for i, wp in pairs(waypoints) do
+
+			for i, wp in pairs(path:GetWaypoint()) do
 				if wp.Label == "Climb" then
 					climb = true
 					break

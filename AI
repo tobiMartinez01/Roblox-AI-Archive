@@ -47,19 +47,13 @@ local function updateValue()
 end
 
 local function findNearest()
-	--Get the nearest
-	local nearestCharacter
-	local nearestDistance
-	for i, character in pairs(workspace.Allies:GetChildren()) do
-		if character:FindFirstChild("Humanoid") and character:FindFirstChild("HumanoidRootPart") and character ~= self then
-			local distance = (character.HumanoidRootPart.Position - hrp.Position).Magnitude
-			if not nearestDistance or distance < nearestDistance then
-				nearestDistance = distance
-				nearestCharacter = character
-			end
+	local character, dist = nil, math.huge
+	for _, player in ipairs(game.Players:GetPlayers()) do
+		if player.Character and (player.Character.PrimaryPart.Position - hrp.Position).Magnitude < dist then
+			character, dist = player.Character, (player.Character.PrimaryPart.Position - fromPosition).Magnitude
 		end
 	end
-	return nearestCharacter, nearestDistance
+	return character, dist
 end
 
 local climb = false

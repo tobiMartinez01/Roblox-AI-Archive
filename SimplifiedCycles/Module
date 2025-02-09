@@ -173,27 +173,27 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 	local lastWaypoint = nil
 	local lastWaypoint2 = nil
-	
+
 	local precurrentIndex = nil
-	
+
 	local prelastWaypoint = nil
 	local prelastWaypoint2 = nil
-	
+
 	--Pre-request
 	if subRequest then
 		precurrentIndex = subRequest.precurrentIndex
-		
+
 		prelastWaypoint = subRequest.prelastWaypoint
 		prelastWaypoint2 = subRequest.prelastWaypoint2
 	end
-	
+
 	if preRequest then
 		currentIndex = preRequest.currentIndex
-		
+
 		lastWaypoint = preRequest.lastWaypoint
 		lastWaypoint2 = preRequest.lastWaypoint2
 	end
-	
+
 	local preWaypoint = nil
 	local preWaypoint2 = nil
 
@@ -218,13 +218,13 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		else
 			--In order
 			currentIndex+=1
-			
+
 			if currentIndex > #pathWaypoints then
 				currentIndex = 1
 			end
-			
+
 		end
-		
+
 		currentWaypoint = selectedPath[currentIndex]
 		currentWaypoint:SetAttribute("Unavailable", true)
 	end
@@ -261,15 +261,26 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			lastWaypoint2 = lastWaypoint
 			lastWaypoint = currentWaypoint
 			
+			--Detect if there is a set stare position
+			if currentWaypoint:FindFirstChildWhichIsA("Attachment") then
+				local lookPoint = currentWaypoint:FindFirstChildWhichIsA("Attachment")
+				repeat
+					task.wait()
+				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and hrp.Velocity.Magnitude < 0.01
+				lookEnable(self)
+				local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
+				self.AlignOrientation.LookAtPosition = fixedLookAtPos
+			end
+
 			--Cleanup
 			currentWaypoint:SetAttribute("Unavailable", nil)
 			error_:Disconnect()
 			trapped_:Disconnect()
 			reachedEvent:Disconnect()
-			
+
 			--Detect sub waypoints
 			local subwaypoints = {}
-			
+
 			for i, waypoint in pairs(currentWaypoint:GetChildren()) do
 				if waypoint:IsA("BasePart") then
 					table.insert(subwaypoints, waypoint)
@@ -279,14 +290,16 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			table.sort(subwaypoints, function(a, b)
 				return tonumber(a.Name) < tonumber(b.Name)
 			end)
-			
+
 			if #subwaypoints > 0 then
+				
+				--Archive
 				local sendData = {
 					precurrentIndex = currentIndex,
 					prelastWaypoint = lastWaypoint,
 					prelastWaypoint2 = lastWaypoint2
 				}
-				
+
 				Run(self, self.Agent, subwaypoints, debounce, randomized, sendData)
 			else
 				if reached < #pathWaypoints or pathFolder == self.Path then
@@ -305,7 +318,9 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 						table.sort(prewaypoints, function(a, b)
 							return tonumber(a.Name) < tonumber(b.Name)
 						end)
-
+						
+						
+						--Restore
 						local sendData = {
 							currentIndex = precurrentIndex,
 							lastWaypoint = prelastWaypoint,
@@ -319,6 +334,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		end)
 
 		--Run
+		lookDisable(self)
 		operator:Run(currentWaypoint.Position)
 	end
 

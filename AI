@@ -50,7 +50,7 @@ local function findNearest()
 	--Get the nearest
 	local nearestCharacter
 	local nearestDistance
-	for i, character in pairs(workspace:GetDescendants()) do
+	for i, character in pairs(workspace.Allies:GetChildren()) do
 		if character:FindFirstChild("Humanoid") and character:FindFirstChild("HumanoidRootPart") and character ~= self then
 			local distance = (character.HumanoidRootPart.Position - hrp.Position).Magnitude
 			if not nearestDistance or distance < nearestDistance then
@@ -65,7 +65,7 @@ end
 local climb = false
 local waypoints
 
-while true do
+while task.wait() do
 	target = findNearest()
 	if target then
 		local target_hrp = target.HumanoidRootPart
@@ -75,8 +75,8 @@ while true do
 
 		if climb == false then
 			path:Run(destination)
-
-			for i, wp in pairs(path:GetWaypoint()) do
+			waypoints = path.Route
+			for i, wp in pairs(waypoints) do
 				if wp.Label == "Climb" then
 					climb = true
 					break
@@ -89,5 +89,4 @@ while true do
 			climb = false
 		end
 	end
-	task.wait()
 end

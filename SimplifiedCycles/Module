@@ -131,7 +131,7 @@ function lookDisable(self)
 	self.AlignOrientation.Enabled = false
 end
 
-local function Run(self, npc, pathFolder, debounce, randomized)
+local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preRequest)
 	--Calling agent
 	local humanoid = npc.Humanoid
 	local hrp = npc.HumanoidRootPart
@@ -168,20 +168,40 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 	end)
 
 	--Variables
-	local currentIndex
+	local currentIndex = 0
 	local currentWaypoint
 
 	local lastWaypoint = nil
 	local lastWaypoint2 = nil
+	
+	local precurrentIndex = nil
+	
+	local prelastWaypoint = nil
+	local prelastWaypoint2 = nil
+	
+	--Pre-request
+	if subRequest then
+		precurrentIndex = subRequest.precurrentIndex
+		
+		prelastWaypoint = subRequest.prelastWaypoint
+		prelastWaypoint2 = subRequest.prelastWaypoint2
+	end
+	
+	if preRequest then
+		currentIndex = preRequest.currentIndex
+		
+		lastWaypoint = preRequest.lastWaypoint
+		lastWaypoint2 = preRequest.lastWaypoint2
+	end
+	
+	local preWaypoint = nil
+	local preWaypoint2 = nil
 
 	local reached = 0
 
 	--Finding next waypoint
 	local function nextIndex(selectedPath)
-		--Saving last waypoints (for effective rng)
-		lastWaypoint2 = lastWaypoint
-		lastWaypoint = currentWaypoint
-
+		currentWaypoint = selectedPath[currentIndex]
 		--Overidding debounce and randomized
 		if currentWaypoint then
 			debounce = currentWaypoint:GetAttribute('Debounce')
@@ -192,8 +212,9 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 			--Random
 			repeat
 				currentIndex = random(1, #selectedPath)
-				currentWaypoint = selectedPath[currentIndex]
-			until (#selectedPath < 4 or (currentWaypoint ~= lastWaypoint and currentWaypoint ~= lastWaypoint2)) and selectedPath[currentIndex]:GetAttribute('Unvailable') == nil
+			until (#selectedPath < 4 or (selectedPath[currentIndex] ~= lastWaypoint and 
+				selectedPath[currentIndex] ~= lastWaypoint2)) and not selectedPath[currentIndex]:GetAttribute('Unvailable') and
+				selectedPath[currentIndex] ~= currentWaypoint
 		else
 			--In order
 			currentIndex+=1
@@ -236,13 +257,65 @@ local function Run(self, npc, pathFolder, debounce, randomized)
 
 		reachedEvent = operator.Reached:Connect(function()
 			reached+=1
+			--Saving last waypoints (for effective rng)
+			lastWaypoint2 = lastWaypoint
+			lastWaypoint = currentWaypoint
+			
 			--Cleanup
 			currentWaypoint:SetAttribute("Unavailable", nil)
 			error_:Disconnect()
 			trapped_:Disconnect()
 			reachedEvent:Disconnect()
-			--Loop
-			goTo(pathWaypoints)
+			
+			--Detect sub waypoints
+			local subwaypoints = {}
+			
+			for i, waypoint in pairs(currentWaypoint:GetChildren()) do
+				if waypoint:IsA("BasePart") then
+					table.insert(subwaypoints, waypoint)
+				end
+			end
+			--Sort data
+			table.sort(subwaypoints, function(a, b)
+				return tonumber(a.Name) < tonumber(b.Name)
+			end)
+			
+			if #subwaypoints > 0 then
+				local sendData = {
+					precurrentIndex = currentIndex,
+					prelastWaypoint = lastWaypoint,
+					prelastWaypoint2 = lastWaypoint2
+				}
+				
+				Run(self, self.Agent, subwaypoints, debounce, randomized, sendData)
+			else
+				if reached < #pathWaypoints or pathFolder == self.Path then
+					goTo(pathWaypoints)
+				else
+					if currentWaypoint.Parent.Parent then
+						local prewaypoints = {}
+						local prePath = currentWaypoint.Parent.Parent:GetChildren()
+
+						for i, waypoint in pairs(prePath) do
+							if waypoint:IsA("BasePart") then
+								table.insert(prewaypoints, waypoint)
+							end
+						end
+						--Sort data
+						table.sort(prewaypoints, function(a, b)
+							return tonumber(a.Name) < tonumber(b.Name)
+						end)
+
+						local sendData = {
+							currentIndex = precurrentIndex,
+							lastWaypoint = prelastWaypoint,
+							lastWaypoint2 = prelastWaypoint2
+						}
+
+						Run(self, self.Agent, prewaypoints, debounce, randomized, nil, sendData)
+					end
+				end
+			end
 		end)
 
 		--Run

@@ -50,7 +50,7 @@ local function findNearest()
 	local character, dist = nil, math.huge
 	for _, player in ipairs(game.Players:GetPlayers()) do
 		if player.Character and (player.Character.PrimaryPart.Position - hrp.Position).Magnitude < dist then
-			character, dist = player.Character, (player.Character.PrimaryPart.Position - fromPosition).Magnitude
+			character, dist = player.Character, (player.Character.PrimaryPart.Position - hrp.Position).Magnitude
 		end
 	end
 	return character, dist

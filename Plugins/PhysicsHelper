@@ -2,6 +2,7 @@ local toolbar = plugin:CreateToolbar('Physics Helper')
 
 --Detect product version
 local IsLocal = if string.find(plugin.Name, ".rbxm") or string.find(plugin.Name, ".lua") then true else false
+local localStorage = workspace.Camera
 
 local openUI
 if IsLocal then
@@ -12,9 +13,8 @@ end
 openUI.ClickableWhenViewportHidden = true
 
 --Client signal
-local remoteFunction = script.Parent.RemoteFunction
 local userID = game:GetService("StudioService"):GetUserId()
-remoteFunction:InvokeClient(game.Players:GetPlayerByUserId(userID))
+local user = game.Players:GetPlayerByUserId(userID)
 
 local uiProperties = DockWidgetPluginGuiInfo.new(
 	Enum.InitialDockState.Float, -- Default docking state
@@ -315,6 +315,99 @@ modelweld.Clear.MouseButton1Click:Connect(function()
 	for i, model in pairs(selectedItems) do
 		if model:IsA("Model") then
 			clearweld(model)
+		end
+	end
+end)
+
+--Visuals
+
+--PathModifiers
+local pathmodifiers = content.pathmodifiers
+local pathmodifiersEnabled = false
+
+local pathmodifiers_properties = {}
+
+--Storage
+local pathmodifiers_temp = localStorage:FindFirstChild("PathModifiers_Normals") or Instance.new("Folder", localStorage)
+pathmodifiers_temp.Name = "PathModifiers_Normals"
+pathmodifiers_temp.Archivable = false
+
+local function createSurfaceUI(part, color, face)
+	local surfaceUI = Instance.new("SurfaceGui", pathmodifiers_temp)
+	surfaceUI.Name = "Normal"
+	surfaceUI.Archivable = false
+	surfaceUI.Adornee = part
+	surfaceUI.Face = face
+	surfaceUI.AlwaysOnTop = false
+
+	surfaceUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+	surfaceUI.LightInfluence = 0
+	surfaceUI.Brightness = 1
+
+	local imageButton = Instance.new("ImageButton", surfaceUI)
+	imageButton.Archivable = false
+	imageButton.Size = UDim2.new(1, 0, 1, 0)
+
+	imageButton.BackgroundColor3 = color
+	imageButton.BackgroundTransparency = 0.75
+	imageButton.ImageTransparency = 1
+end
+
+local function createNormal(part, color)
+	createSurfaceUI(part, color, Enum.NormalId.Front)
+	createSurfaceUI(part, color, Enum.NormalId.Back)
+	createSurfaceUI(part, color, Enum.NormalId.Left)
+	createSurfaceUI(part, color, Enum.NormalId.Right)
+	createSurfaceUI(part, color, Enum.NormalId.Top)
+	createSurfaceUI(part, color, Enum.NormalId.Bottom)
+end
+
+local pathmodifiers_auto
+
+pathmodifiers.button.MouseButton1Click:Connect(function()
+	--Toggle
+	pathmodifiersEnabled = not pathmodifiersEnabled
+	
+	--Processing
+	if pathmodifiersEnabled then
+		pathmodifiers.button.Image = checkbox.checked_checkbox.id
+		pathmodifiers.button.ImageRectOffset = checkbox.checked_checkbox.offset 
+		--Show path modifiers
+		for i, instance in pairs(workspace:GetDescendants()) do
+			if instance:IsA("BasePart") then
+				local pathmodifier = instance:FindFirstChildWhichIsA("PathfindingModifier")
+				if pathmodifier then
+					if pathmodifier.PassThrough == false then
+						createNormal(instance, Color3.fromRGB(255, 0, 0))
+					else
+						createNormal(instance, Color3.fromRGB(150, 255, 0))
+					end
+				end
+			end
+		end
+		
+		pathmodifiers_auto = workspace.DescendantAdded:Connect(function(pathmodifier)
+			if pathmodifier:IsA("PathfindingModifier") then
+				local part = pathmodifier:FindFirstAncestorWhichIsA("BasePart")
+				if pathmodifier then
+					if pathmodifier.PassThrough == false then
+						createNormal(part, Color3.fromRGB(255, 0, 0))
+					else
+						createNormal(part, Color3.fromRGB(150, 255, 0))
+					end
+				end
+			end
+		end)
+	else
+		pathmodifiers_auto:Disconnect()
+		pathmodifiers.button.Image = checkbox.blank_checkbox.id
+		pathmodifiers.button.ImageRectOffset = checkbox.blank_checkbox.offset
+		--Hide path modifiers
+		for i, surfaceUI in pairs(pathmodifiers_temp:GetChildren()) do
+			if surfaceUI:IsA("SurfaceGui") then
+				surfaceUI:Destroy()
+			end
 		end
 	end
 end)

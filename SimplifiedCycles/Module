@@ -260,16 +260,27 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			--Saving last waypoints (for effective rng)
 			lastWaypoint2 = lastWaypoint
 			lastWaypoint = currentWaypoint
-			
+
 			--Detect if there is a set stare position
 			if currentWaypoint:FindFirstChildWhichIsA("Attachment") then
+				--Stares
 				local lookPoint = currentWaypoint:FindFirstChildWhichIsA("Attachment")
 				repeat
-					task.wait()
+					RunService.Heartbeat:Wait()
 				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and hrp.Velocity.Magnitude < 0.01
 				lookEnable(self)
 				local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
 				self.AlignOrientation.LookAtPosition = fixedLookAtPos
+				
+				--Reached desired rotation
+				local x, y, z = hrp.CFrame:ToObjectSpace(CFrame.new(fixedLookAtPos)):ToOrientation()
+				repeat
+					x, y, z = hrp.CFrame:ToObjectSpace(CFrame.new(fixedLookAtPos)):ToOrientation()
+					RunService.Heartbeat:Wait()
+				until math.abs(y) <= 0.0174533
+				
+				lookDisable(self)
+				print(npc, " play animation")
 			end
 
 			--Cleanup
@@ -292,7 +303,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end)
 
 			if #subwaypoints > 0 then
-				
+
 				--Archive
 				local sendData = {
 					precurrentIndex = currentIndex,
@@ -318,8 +329,8 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 						table.sort(prewaypoints, function(a, b)
 							return tonumber(a.Name) < tonumber(b.Name)
 						end)
-						
-						
+
+
 						--Restore
 						local sendData = {
 							currentIndex = precurrentIndex,

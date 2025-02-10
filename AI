@@ -56,8 +56,6 @@ local function findNearest()
 	return character, dist
 end
 
-local climb = false
-
 local heartbeatDebounce = false
 
 RunService.Heartbeat:Connect(function(dt)
@@ -70,25 +68,13 @@ RunService.Heartbeat:Connect(function(dt)
 
 			local destination = target.HumanoidRootPart.Position
 			
-			local waypoints = path.Route
-
-			if climb == false then
-				path:Run(destination)
-				if waypoints[3] then
-					if waypoints[3].Label == "Climb" then
-						climb = true
-					end
-				end
-			else
-				path:Stop()
-				
-				if waypoints[3] then
-					humanoid:MoveTo(waypoints[3].Position)
-					humanoid.MoveToFinished:Wait()
-				end
-				
-				if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
-					climb = false
+			path:Run(destination)
+			
+			local wp = path:GetWaypoint()
+			if wp then
+				if wp.Label == "Climb" then
+					path:TravelWaypoint()
+					path.WaypointReached:Wait()
 				end
 			end
 		end

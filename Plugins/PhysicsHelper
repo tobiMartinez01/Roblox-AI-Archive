@@ -333,7 +333,7 @@ local pathmodifiersEnabled = false
 local pathmodifiers_properties = {}
 
 --Storage
-local pathmodifiers_temp = localStorage:FindFirstChild("PathModifiers_Normals") or Instance.new("Folder", localStorage)
+local pathmodifiers_temp = CoreGui:FindFirstChild("PathModifiers_Normals") or Instance.new("Folder", CoreGui)
 pathmodifiers_temp.Name = "PathModifiers_Normals"
 pathmodifiers_temp.Archivable = false
 
@@ -370,14 +370,19 @@ end
 
 local pathmodifiers_auto
 
+local mouse = user:GetMouse()
+local click
+
 pathmodifiers.button.MouseButton1Click:Connect(function()
 	--Toggle
 	pathmodifiersEnabled = not pathmodifiersEnabled
 
 	--Processing
 	if pathmodifiersEnabled then
+		--Checkbox
 		pathmodifiers.button.Image = checkbox.checked_checkbox.id
-		pathmodifiers.button.ImageRectOffset = checkbox.checked_checkbox.offset 
+		pathmodifiers.button.ImageRectOffset = checkbox.checked_checkbox.offset
+		
 		--Show path modifiers
 		for i, instance in pairs(workspace:GetDescendants()) do
 			if instance:IsA("BasePart") then
@@ -404,10 +409,29 @@ pathmodifiers.button.MouseButton1Click:Connect(function()
 				end
 			end
 		end)
+		
+		--Select
+		click = mouse.Button1Up:Connect(function()
+			local hit = mouse.Target
+			
+			--Multi-select check
+			if hit and game.UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+				selection:Add(hit)
+			else
+				selection:Set({hit})
+			end
+		end)
 	else
+		--Disconnect click event
+		if click then
+			click:Disconnect()
+		end
+		
+		--Checkbox
 		pathmodifiers_auto:Disconnect()
 		pathmodifiers.button.Image = checkbox.blank_checkbox.id
 		pathmodifiers.button.ImageRectOffset = checkbox.blank_checkbox.offset
+		
 		--Hide path modifiers
 		for i, surfaceUI in pairs(pathmodifiers_temp:GetChildren()) do
 			if surfaceUI:IsA("SurfaceGui") then

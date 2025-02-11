@@ -3,6 +3,7 @@ local toolbar = plugin:CreateToolbar('Physics Helper')
 --Detect product version
 local IsLocal = if string.find(plugin.Name, ".rbxm") or string.find(plugin.Name, ".lua") then true else false
 local localStorage = workspace.Camera
+local CoreGui = game.CoreGui
 
 local openUI
 if IsLocal then

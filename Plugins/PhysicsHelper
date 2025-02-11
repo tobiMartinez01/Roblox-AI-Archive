@@ -156,13 +156,13 @@ local function showPrompt(title, desc)
 	--Set up
 	primaryPartPrompt.GroupTransparency = 1
 	primaryPartPrompt.Visible = true
-	
+
 	--Override prompt title and description
 	primaryPartPrompt.title.Text = title
 	primaryPartPrompt.desc.Text = desc
-	
+
 	primaryPartPrompt_appear:Play()
-	
+
 	task.wait(5)
 
 	primaryPartPrompt_disappear:Play()
@@ -175,17 +175,17 @@ end
 
 local function resetPrompt()
 	--Closing threads and functions
-	
+
 	if primaryPartThread then
 		coroutine.close(primaryPartThread)
 		primaryPartThread = nil
 	end
-	
+
 	if closingThread then
 		coroutine.close(closingThread)
 		closingThread = nil
 	end
-	
+
 	if skipPrompt then
 		skipPrompt:Disconnect()
 	end
@@ -194,9 +194,9 @@ end
 local function primaryPart_popup()
 	--Fadde after ~5 seconds
 	closingThread = coroutine.create(showPrompt)
-	
+
 	coroutine.resume(closingThread, "Model(s) is missing PrimaryPart", "Please set PrimaryPart to the models")
-	
+
 	--Skip the prompt
 	skipPrompt = primaryPartPrompt.button.MouseButton1Click:Connect(function()
 		primaryPartPrompt_disappear:Play()
@@ -263,7 +263,7 @@ canBeCarried.button.MouseButton1Click:Connect(function()
 				local CarryPoint = Instance.new("Attachment", item)
 				CarryPoint.Name = "CarryPoint"
 			end
-			
+
 			if item:IsA("Model") then
 				if item.PrimaryPart then
 					modelWeld(item)
@@ -277,7 +277,7 @@ canBeCarried.button.MouseButton1Click:Connect(function()
 			if item:IsA("BasePart") or item:IsA("Model") then
 				clearweld(item)
 			end
-			
+
 			for i, instance in pairs(item:GetDescendants()) do
 				if instance.Name == "CarryPoint" and instance:IsA("Attachment") then
 					instance:Destroy()
@@ -306,7 +306,7 @@ modelweld.Weld.MouseButton1Click:Connect(function()
 			end
 		end
 	end
-	
+
 	if #errors > 0 then
 		primaryPartPrompt()
 	else
@@ -372,7 +372,7 @@ local pathmodifiers_auto
 pathmodifiers.button.MouseButton1Click:Connect(function()
 	--Toggle
 	pathmodifiersEnabled = not pathmodifiersEnabled
-	
+
 	--Processing
 	if pathmodifiersEnabled then
 		pathmodifiers.button.Image = checkbox.checked_checkbox.id
@@ -390,11 +390,11 @@ pathmodifiers.button.MouseButton1Click:Connect(function()
 				end
 			end
 		end
-		
+
 		pathmodifiers_auto = workspace.DescendantAdded:Connect(function(pathmodifier)
 			if pathmodifier:IsA("PathfindingModifier") then
 				local part = pathmodifier:FindFirstAncestorWhichIsA("BasePart")
-				if pathmodifier then
+				if part then
 					if pathmodifier.PassThrough == false then
 						createNormal(part, Color3.fromRGB(255, 0, 0))
 					else

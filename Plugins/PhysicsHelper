@@ -170,6 +170,7 @@ local function showPrompt(title, desc)
 	task.wait(0.5)
 
 	primaryPartPrompt.Visible = false
+	closingThread = nil
 end
 
 local function resetPrompt()
@@ -177,10 +178,12 @@ local function resetPrompt()
 	
 	if primaryPartThread then
 		coroutine.close(primaryPartThread)
+		primaryPartThread = nil
 	end
 	
 	if closingThread then
 		coroutine.close(closingThread)
+		closingThread = nil
 	end
 	
 	if skipPrompt then
@@ -199,6 +202,7 @@ local function primaryPart_popup()
 		primaryPartPrompt_disappear:Play()
 		resetPrompt()
 	end)
+	primaryPartThread = nil
 end
 
 local function primaryPartPrompt()

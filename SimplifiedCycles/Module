@@ -250,8 +250,6 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				local stare = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut), {CFrame = CFrame.new(lookPointPos, fixedLookAtPos)})
 				stare:Play()
 				
-				--stare.Completed:Wait()
-				
 				--Play animation
 				local animation = currentWaypoint:FindFirstChildWhichIsA("Animation")
 				
@@ -327,15 +325,17 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end
 		end)
 
-		--Run
-		self.PlayedBindable:Fire(currentWaypoint)
+		
 		
 		--Stop current animation
 		if self.currentTrack then
 			hrp.Anchored = false
 			self.currentTrack:Stop()
+			self.currentTrack = nil
 		end
 		
+		--Run
+		self.PlayedBindable:Fire(currentWaypoint)
 		operator:Run(currentWaypoint.Position)
 	end
 

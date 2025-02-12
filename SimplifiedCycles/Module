@@ -200,6 +200,11 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end
 
 		end
+		
+		if self.Start then
+			currentIndex = self.Start
+			self.Start = nil
+		end
 
 		currentWaypoint = selectedPath[currentIndex]
 		currentWaypoint:SetAttribute("Unavailable", true)
@@ -212,23 +217,13 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 		--Yield depending on previous waypoint set Debounce
 		task.wait(debounce)
-
+		
 		--Connections
+		local reachedEvent
 		local error_
 		local trapped_
-
-		error_ = operator.Error:Connect(function()
-			operator:Run(currentWaypoint.Position)
-		end)
-
-		trapped_ = operator.Trapped:Connect(function()
-			operator:Run(currentWaypoint.Position)
-		end)
-
-		--Cleanup and stopping the loop
-		local reachedEvent
-
-		reachedEvent = operator.Reached:Connect(function()
+		
+		local function reachedFunction()
 			reached+=1
 			--Saving last waypoints (for effective rng)
 			lastWaypoint2 = lastWaypoint
@@ -323,9 +318,28 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 					end
 				end
 			end
+		end
+
+		error_ = operator.Error:Connect(function(errortype)
+			if errortype == "PathTooShort" or errortype == "TargetUnreachable" then
+				local distance = (hrp.Position - Vector3.new(currentWaypoint.Position.X, hrp.Position.Y, currentWaypoint.Position.Z)).Magnitude
+				if distance <= 0.5 then
+					reachedFunction()
+				end
+			else
+				operator:Run(currentWaypoint.Position)
+			end
+		end)
+
+		trapped_ = operator.Trapped:Connect(function()
+			operator:Run(currentWaypoint.Position)
 		end)
 
 
+		--Cleanup and stopping the loop
+		reachedEvent = operator.Reached:Connect(function()
+			reachedFunction()
+		end)
 
 		--Stop current animation
 		if self.currentTrack then

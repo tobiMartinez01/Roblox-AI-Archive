@@ -200,7 +200,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end
 
 		end
-		
+
 		if self.Start then
 			currentIndex = self.Start
 			self.Start = nil
@@ -217,12 +217,12 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 		--Yield depending on previous waypoint set Debounce
 		task.wait(debounce)
-		
+
 		--Connections
 		local reachedEvent
 		local error_
 		local trapped_
-		
+
 		local function reachedFunction()
 			reached+=1
 			--Saving last waypoints (for effective rng)
@@ -246,7 +246,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				stare:Play()
 
 				--Play animation
-				local animation = currentWaypoint:FindFirstChildWhichIsA("Animation")
+				local animation = currentWaypoint:FindFirstChild("Animation")
 
 				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
 					if not self.currentTrack then
@@ -343,10 +343,11 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 		--Stop current animation
 		if self.currentTrack then
-			hrp.Anchored = false
 			self.currentTrack:Stop()
 			self.currentTrack = nil
 		end
+		
+		hrp.Anchored = false
 
 		--Run
 		self.PlayedBindable:Fire(currentWaypoint)

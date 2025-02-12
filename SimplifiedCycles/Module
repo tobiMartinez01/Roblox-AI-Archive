@@ -5,21 +5,22 @@ wanderer.__index = wanderer
 --Workspaces
 local RunService = game["Run Service"]
 local PathFindingService = game["PathfindingService"]
+local TweenService = game.TweenService
 
 --Libraries
 local NoobPath = require(game.ServerStorage.NoobPath)
 
 local random = math.random
 
-function wanderer.new(agent, path, costs, defaultDebounce, randomized)
+function wanderer.new(agent, costs)
 	local new_wander = {}
 	--Bind wander to be new_wander
 	setmetatable(new_wander, wanderer)
 	--Insert but OOP style :P aka custom properties
 	new_wander.Agent = agent
-	new_wander.Path = path
-	new_wander.Debounce = defaultDebounce
-	new_wander.Randomized = randomized
+	new_wander.Path = nil
+	new_wander.Debounce = nil
+	new_wander.Randomized = nil
 
 	--Creating Operator
 	local pathParams = {
@@ -43,28 +44,15 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 		end
 	end
 
-	--Stares
-	local attachment0 = Instance.new("Attachment", agent.HumanoidRootPart)
-	attachment0.CFrame = CFrame.Angles(0, math.rad(90), 0)
-
-	local alignOrientation = Instance.new("AlignOrientation", attachment0)
-	alignOrientation.MaxTorque = 10^5
-	alignOrientation.MaxAngularVelocity = 100
-	alignOrientation.Responsiveness = 20
-	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	alignOrientation.AlignType = Enum.AlignType.PrimaryAxisLookAt
-	alignOrientation.ReactionTorqueEnabled = true
-	alignOrientation.Attachment0 = attachment0
-	alignOrientation.Enabled = false
-
-	new_wander.Attachment0 = attachment0
-	new_wander.AlignOrientation = alignOrientation
-
 	--Events
+	
+	--Played event
+	new_wander.PlayedBindable = Instance.new("BindableEvent")
+	new_wander.Played = new_wander.PlayedBindable.Event
 
 	--Reached event
 	new_wander.ReachedBindable = Instance.new("BindableEvent")
-	new_wander.Reached = new_wander.ReachedBindable.Event 
+	new_wander.Reached = new_wander.ReachedBindable.Event
 
 
 	--Jump
@@ -117,18 +105,6 @@ function wanderer.new(agent, path, costs, defaultDebounce, randomized)
 	end)()
 
 	return new_wander
-end
-
-function invokeReached(self, currentIndex)
-	self.ReachedBindable:Fire(currentIndex)
-end
-
-function lookEnable(self)
-	self.AlignOrientation.Enabled = true
-end
-
-function lookDisable(self)
-	self.AlignOrientation.Enabled = false
 end
 
 local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preRequest)
@@ -233,12 +209,9 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 	local function goTo(selectedPath)
 		--Find next index
 		nextIndex(selectedPath)
+		
 		--Yield depending on previous waypoint set Debounce
-		if reached == 0 and pathFolder == self.Path  then
-			task.wait(0)
-		else
-			task.wait(debounce)
-		end
+		task.wait(debounce)
 
 		--Connections
 		local error_
@@ -263,25 +236,35 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 			--Detect if there is a set stare position
 			if currentWaypoint:FindFirstChildWhichIsA("Attachment") then
+				
 				--Stares
 				local lookPoint = currentWaypoint:FindFirstChildWhichIsA("Attachment")
+
+				local lookPointPos = currentWaypoint.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
+				local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
+
 				repeat
 					RunService.Heartbeat:Wait()
 				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and hrp.Velocity.Magnitude < 0.01
-				lookEnable(self)
-				local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
-				self.AlignOrientation.LookAtPosition = fixedLookAtPos
 				
-				--Reached desired rotation
-				local x, y, z = hrp.CFrame:ToObjectSpace(CFrame.new(fixedLookAtPos)):ToOrientation()
-				repeat
-					x, y, z = hrp.CFrame:ToObjectSpace(CFrame.new(fixedLookAtPos)):ToOrientation()
-					RunService.Heartbeat:Wait()
-				until math.abs(y) <= 0.0174533
+				local stare = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut), {CFrame = CFrame.new(lookPointPos, fixedLookAtPos)})
+				stare:Play()
 				
-				lookDisable(self)
-				print(npc, " play animation")
+				--stare.Completed:Wait()
+				
+				--Play animation
+				local animation = currentWaypoint:FindFirstChildWhichIsA("Animation")
+				
+				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
+					if not self.currentTrack then
+						hrp.Anchored = true
+						self.currentTrack = humanoid.Animator:LoadAnimation(animation)
+						self.currentTrack:Play()
+					end
+				end
 			end
+			
+			self.ReachedBindable:Fire(currentWaypoint)
 
 			--Cleanup
 			currentWaypoint:SetAttribute("Unavailable", nil)
@@ -345,7 +328,14 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		end)
 
 		--Run
-		lookDisable(self)
+		self.PlayedBindable:Fire(currentWaypoint)
+		
+		--Stop current animation
+		if self.currentTrack then
+			hrp.Anchored = false
+			self.currentTrack:Stop()
+		end
+		
 		operator:Run(currentWaypoint.Position)
 	end
 

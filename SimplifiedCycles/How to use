@@ -1,0 +1,18 @@
+local SimplifiedWander = require(game.ServerStorage.SimplifiedWander)
+
+local Costs = {
+	-- Smaller = higher priority
+	Climb = 1,
+	Blocked = math.huge,
+}
+
+local NPC = workspace.NPCs["Bricktopia Bay"].Rose.Rose
+local waypoints = workspace.NPCs["Bricktopia Bay"].Rose
+
+local agent = SimplifiedWander.new(NPC, Costs)
+agent.Path = waypoints
+agent.Debounce = 0
+agent.Randomized = true
+agent.Start = 1 --Start at #index waypoint first
+
+agent:Run()

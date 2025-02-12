@@ -45,7 +45,7 @@ function wanderer.new(agent, costs)
 	end
 
 	--Events
-	
+
 	--Played event
 	new_wander.PlayedBindable = Instance.new("BindableEvent")
 	new_wander.Played = new_wander.PlayedBindable.Event
@@ -209,7 +209,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 	local function goTo(selectedPath)
 		--Find next index
 		nextIndex(selectedPath)
-		
+
 		--Yield depending on previous waypoint set Debounce
 		task.wait(debounce)
 
@@ -236,7 +236,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 			--Detect if there is a set stare position
 			if currentWaypoint:FindFirstChildWhichIsA("Attachment") then
-				
+
 				--Stares
 				local lookPoint = currentWaypoint:FindFirstChildWhichIsA("Attachment")
 
@@ -246,13 +246,13 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				repeat
 					RunService.Heartbeat:Wait()
 				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and hrp.Velocity.Magnitude < 0.01
-				
+
 				local stare = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut), {CFrame = CFrame.new(lookPointPos, fixedLookAtPos)})
 				stare:Play()
-				
+
 				--Play animation
 				local animation = currentWaypoint:FindFirstChildWhichIsA("Animation")
-				
+
 				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
 					if not self.currentTrack then
 						hrp.Anchored = true
@@ -261,7 +261,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 					end
 				end
 			end
-			
+
 			self.ReachedBindable:Fire(currentWaypoint)
 
 			--Cleanup
@@ -306,7 +306,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 								table.insert(prewaypoints, waypoint)
 							end
 						end
-						
+
 						--Sort data
 						table.sort(prewaypoints, function(a, b)
 							return tonumber(a.Name) < tonumber(b.Name)
@@ -325,15 +325,15 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end
 		end)
 
-		
-		
+
+
 		--Stop current animation
 		if self.currentTrack then
 			hrp.Anchored = false
 			self.currentTrack:Stop()
 			self.currentTrack = nil
 		end
-		
+
 		--Run
 		self.PlayedBindable:Fire(currentWaypoint)
 		operator:Run(currentWaypoint.Position)
@@ -344,7 +344,18 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 end
 
 function wanderer:Run()
-	Run(self, self.Agent, self.Path, self.Debounce, self.Randomized)
+	if not self.RunningThread then
+		self.RunningThread = coroutine.create(Run)
+		coroutine.resume(self.RunningThread, self, self.Agent, self.Path, self.Debounce, self.Randomized)
+	end
+end
+
+function wanderer:Stop()
+	if self.RunningThread then
+		coroutine.yield(self.RunningThread)
+		coroutine.close(self.RunningThread)
+		self.RunningThread = nil
+	end
 end
 
 return wanderer

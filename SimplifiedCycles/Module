@@ -306,11 +306,11 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 								table.insert(prewaypoints, waypoint)
 							end
 						end
+						
 						--Sort data
 						table.sort(prewaypoints, function(a, b)
 							return tonumber(a.Name) < tonumber(b.Name)
 						end)
-
 
 						--Restore
 						local sendData = {

@@ -17,14 +17,10 @@ agent.Start = 1 --Start at #index waypoint first
 
 agent:Run()
 
---[[
-
-agent.Reached.OnInvoke = function()
+agent.Reached:Connect(function(currentWaypoint)
 	--Here
-end
+end)
 
-agent.Played.OnInvoke = function()
+agent.Played:Connect(function(nextWaypoint)
 	--Here
-end
-
-]]
+end)

@@ -45,10 +45,12 @@ function wanderer.new(agent, costs)
 	end
 
 	--Played event
-	new_wander.Played = Instance.new("BindableFunction")
+	new_wander.PlayedBindable = Instance.new("BindableEvent")
+	new_wander.Played = new_wander.PlayedBindable.Event
 
 	--Reached event
-	new_wander.Reached = Instance.new("BindableFunction")
+	new_wander.ReachedBindable = Instance.new("BindableEvent")
+	new_wander.Reached = new_wander.ReachedBindable.Event
 
 
 	--Jump
@@ -270,7 +272,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				end
 			end
 
-			self.Reached:Invoke(currentWaypoint)
+			self.ReachedBindable:Fire(currentWaypoint)
 
 			--Cleanup
 			currentWaypoint:SetAttribute("Unavailable", nil)
@@ -336,7 +338,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		--Run function
 		local function run()
 			--Fire event
-			self.Played:Invoke(currentWaypoint)
+			self.PlayedBindable:Fire(currentWaypoint)
 
 			--Stop current animation
 			if self.currentTrack then

@@ -54,7 +54,7 @@ function wanderer.new(agent, costs)
 	--Jump
 	local humanoid = agent.Humanoid
 	local hrp = agent.HumanoidRootPart
-	
+
 	local debounce = false
 
 	coroutine.wrap(function()
@@ -224,35 +224,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		local reachedEvent
 		local error_
 		local trapped_
-		
-		--Run function
-		local function run()
-			--Fire event
-			self.Played:Invoke(currentWaypoint)
 
-			--Stop current animation
-			if self.currentTrack then
-				self.currentTrack:Stop()
-				self.currentTrack = nil
-			end
-
-			--Leaving animation
-
-			local leave = lastWaypoint:FindFirstChild("Leave")
-
-			if leave then
-				local track = humanoid.Animator:LoadAnimation(leave)
-				track.Looped = false
-				track.Priority = Enum.AnimationPriority.Action2
-				track:Play()
-				track.Stopped:Wait()
-			end
-
-			hrp.Anchored = false
-
-			operator:Run(currentWaypoint.Position)
-		end
-		
 		--Reached function
 		local function reachedFunction()
 			reached+=1
@@ -359,6 +331,34 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 					end
 				end
 			end
+		end
+
+		--Run function
+		local function run()
+			--Fire event
+			self.Played:Invoke(currentWaypoint)
+
+			--Stop current animation
+			if self.currentTrack then
+				self.currentTrack:Stop()
+				self.currentTrack = nil
+			end
+
+			--Leaving animation
+
+			local leave = lastWaypoint:FindFirstChild("Leave")
+
+			if leave then
+				local track = humanoid.Animator:LoadAnimation(leave)
+				track.Looped = false
+				track.Priority = Enum.AnimationPriority.Action2
+				track:Play()
+				track.Stopped:Wait()
+			end
+
+			hrp.Anchored = false
+
+			operator:Run(currentWaypoint.Position)
 		end
 
 		--Connections

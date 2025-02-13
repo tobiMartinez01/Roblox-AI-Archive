@@ -44,64 +44,66 @@ function wanderer.new(agent, costs)
 		end
 	end
 
-	--Events
-
 	--Played event
-	new_wander.PlayedBindable = Instance.new("BindableEvent")
-	new_wander.Played = new_wander.PlayedBindable.Event
+	new_wander.Played = Instance.new("BindableFunction")
 
 	--Reached event
-	new_wander.ReachedBindable = Instance.new("BindableEvent")
-	new_wander.Reached = new_wander.ReachedBindable.Event
+	new_wander.Reached = Instance.new("BindableFunction")
 
 
 	--Jump
 	local humanoid = agent.Humanoid
 	local hrp = agent.HumanoidRootPart
+	
+	local debounce = false
 
 	coroutine.wrap(function()
-		while task.wait() do
-			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not new_wander.PathOperator.Idle then
-				local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-				local size = Vector3.new(2, hrp.Size.Y, 2)
-				local overlap = OverlapParams.new()
-				overlap.RespectCanCollide = true
-				overlap.FilterType = Enum.RaycastFilterType.Exclude
-				overlap.FilterDescendantsInstances = {npc}
-				local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
+		RunService.Heartbeat:Connect(function()
+			if debounce == false then
+				debounce = true
+				if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not new_wander.PathOperator.Idle then
+					local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
+					local size = Vector3.new(2, hrp.Size.Y, 2)
+					local overlap = OverlapParams.new()
+					overlap.RespectCanCollide = true
+					overlap.FilterType = Enum.RaycastFilterType.Exclude
+					overlap.FilterDescendantsInstances = {npc}
+					local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
 
-				for i, part in pairs(obstacle) do
-					if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-						if part.ClassName ~= "TrussPart" then
-							if part.Transparency ~= 1 then
-								local sides = {
-									front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-									back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-									right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-									left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-									up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-									down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-								}
+					for i, part in pairs(obstacle) do
+						if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+							if part.ClassName ~= "TrussPart" then
+								if part.Transparency ~= 1 then
+									local sides = {
+										front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+										back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+										right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+										left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+										up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+										down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+									}
 
-								local highestSurface = nil
-								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+									local highestSurface = nil
+									local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
 
-								for side, position in pairs(sides) do
-									if position.Y > highestY then
-										highestY = position.Y
-										highestSurface = side
+									for side, position in pairs(sides) do
+										if position.Y > highestY then
+											highestY = position.Y
+											highestSurface = side
+										end
 									end
-								end
 
-								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-									humanoid.Jump = true
+									if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+										humanoid.Jump = true
+									end
 								end
 							end
 						end
 					end
 				end
+				debounce = false
 			end
-		end
+		end)
 	end)()
 
 	return new_wander
@@ -218,11 +220,40 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		--Yield depending on previous waypoint set Debounce
 		task.wait(debounce)
 
-		--Connections
+		--Connections calls
 		local reachedEvent
 		local error_
 		local trapped_
+		
+		--Run function
+		local function run()
+			--Fire event
+			self.Played:Invoke(currentWaypoint)
 
+			--Stop current animation
+			if self.currentTrack then
+				self.currentTrack:Stop()
+				self.currentTrack = nil
+			end
+
+			--Leaving animation
+
+			local leave = lastWaypoint:FindFirstChild("Leave")
+
+			if leave then
+				local track = humanoid.Animator:LoadAnimation(leave)
+				track.Looped = false
+				track.Priority = Enum.AnimationPriority.Action2
+				track:Play()
+				track.Stopped:Wait()
+			end
+
+			hrp.Anchored = false
+
+			operator:Run(currentWaypoint.Position)
+		end
+		
+		--Reached function
 		local function reachedFunction()
 			reached+=1
 			--Saving last waypoints (for effective rng)
@@ -246,16 +277,16 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				stare:Play()
 
 				--Play animation
-				
+
 				local enter = currentWaypoint:FindFirstChild("Enter")
-				
+
 				if enter then
 					local track = humanoid.Animator:LoadAnimation(enter)
 					track.Looped = false
 					track.Priority = Enum.AnimationPriority.Action2
 					track:Play()
 				end
-				
+
 				local animation = currentWaypoint:FindFirstChild("Animation")
 
 				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
@@ -267,7 +298,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				end
 			end
 
-			self.ReachedBindable:Fire(currentWaypoint)
+			self.Reached:Invoke(currentWaypoint)
 
 			--Cleanup
 			currentWaypoint:SetAttribute("Unavailable", nil)
@@ -330,55 +361,35 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end
 		end
 
+		--Connections
 		error_ = operator.Error:Connect(function(errortype)
+			--Check if the npc is already at the location
 			if errortype == "PathTooShort" or errortype == "TargetUnreachable" then
 				local distance = (hrp.Position - Vector3.new(currentWaypoint.Position.X, hrp.Position.Y, currentWaypoint.Position.Z)).Magnitude
 				if distance <= 0.25 then
 					reachedFunction()
 				end
 			else
-				operator:Run(currentWaypoint.Position)
+				run()
 			end
 		end)
 
 		trapped_ = operator.Trapped:Connect(function()
-			operator:Run(currentWaypoint.Position)
+			run()
 		end)
 
-
-		--Cleanup and stopping the loop
 		reachedEvent = operator.Reached:Connect(function()
 			reachedFunction()
 		end)
 
-		--Run
-		self.PlayedBindable:Fire(currentWaypoint)
-		
+		--Continue the path
 		local distance = (hrp.Position - Vector3.new(currentWaypoint.Position.X, hrp.Position.Y, currentWaypoint.Position.Z)).Magnitude
-		
+
+		--Check if the npc is already at the location
 		if distance <= 0.25 then
 			reachedFunction()
 		else
-			print(npc.Name.." IS LEAVING")
-			--Stop current animation
-			if self.currentTrack then
-				self.currentTrack:Stop()
-				self.currentTrack = nil
-			end
-			
-			hrp.Anchored = false
-			
-			local leave = lastWaypoint:FindFirstChild("Leave")
-
-			if leave then
-				local track = humanoid.Animator:LoadAnimation(leave)
-				track.Looped = false
-				track.Priority = Enum.AnimationPriority.Action2
-				track:Play()
-				track.Stopped:Wait()
-			end
-			
-			operator:Run(currentWaypoint.Position)
+			run()
 		end
 	end
 

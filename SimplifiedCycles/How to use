@@ -19,9 +19,8 @@ agent:Run()
 
 agent.Reached:Connect(function(currentWaypoint)
 	--Here
-	agent:Stop()
 end)
 
---agent.Played:Connect(function(nextWaypoint)
---	--Here
---end)
+agent.Played:Connect(function(nextWaypoint)
+	--Here
+end)

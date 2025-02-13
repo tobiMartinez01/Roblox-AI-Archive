@@ -347,7 +347,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			end
 
 			--Leaving animation
-			
+
 			if lastWaypoint then
 				local leave = lastWaypoint:FindFirstChild("Leave")
 
@@ -410,7 +410,6 @@ end
 
 function wanderer:Stop()
 	if self.RunningThread then
-		coroutine.yield(self.RunningThread)
 		coroutine.close(self.RunningThread)
 		self.RunningThread = nil
 	end

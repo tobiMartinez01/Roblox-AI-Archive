@@ -415,8 +415,8 @@ pathmodifiers.button.MouseButton1Click:Connect(function()
 			local hit = mouse.Target
 			
 			--Multi-select check
-			if hit and game.UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				selection:Add(hit)
+			if hit and game.UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or game.UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+				selection:Add({hit})
 			else
 				selection:Set({hit})
 			end

@@ -16,3 +16,15 @@ agent.Randomized = true
 agent.Start = 1 --Start at #index waypoint first
 
 agent:Run()
+
+--[[
+
+agent.Reached.OnInvoke = function()
+	--Here
+end
+
+agent.Played.OnInvoke = function()
+	--Here
+end
+
+]]

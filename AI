@@ -58,26 +58,22 @@ end
 
 local heartbeatDebounce = false
 
-RunService.Heartbeat:Connect(function(dt)
-	if heartbeatDebounce == false then
-		heartbeatDebounce = true
-		local target = findNearest()
-		if target then
-			local target_hrp = target.HumanoidRootPart
-			local target_humanoid = target.Humanoid
+while RunService.Heartbeat:Wait() do
+	local target = findNearest()
+	if target then
+		local target_hrp = target.HumanoidRootPart
+		local target_humanoid = target.Humanoid
 
-			local destination = target.HumanoidRootPart.Position
-			
-			path:Run(destination)
-			
-			local wp = path:GetWaypoint()
-			if wp then
-				if wp.Label == "Climb" then
-					path:TravelWaypoint()
-					path.WaypointReached:Wait()
-				end
+		local destination = target.HumanoidRootPart.Position
+
+		path:Run(destination)
+
+		local wp = path:GetWaypoint()
+		if wp then
+			if wp.Label == "Climb" then
+				path:TravelWaypoint()
+				path.WaypointReached:Wait()
 			end
 		end
-		heartbeatDebounce = false
 	end
-end)
+end

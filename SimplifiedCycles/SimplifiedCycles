@@ -232,7 +232,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			--Saving last waypoints (for effective rng)
 			lastWaypoint2 = lastWaypoint
 			lastWaypoint = currentWaypoint
-
+			
 			local playAnim
 
 			--Detect if there is a set stare position
@@ -341,8 +341,6 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 					end
 				end
 			end
-			
-			return
 		end
 
 		--Run function
@@ -382,10 +380,12 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				local distance = (hrp.Position - Vector3.new(currentWaypoint.Position.X, hrp.Position.Y, currentWaypoint.Position.Z)).Magnitude
 				if distance <= 0.25 then
 					reachedFunction()
+				else
+					run()
 				end
+			else
+				run()
 			end
-
-			run()
 		end)
 
 		trapped_ = operator.Trapped:Connect(function()

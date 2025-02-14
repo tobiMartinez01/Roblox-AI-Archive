@@ -384,11 +384,11 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				end
 			end
 
-			run()
+			operator:Run(currentWaypoint.Position)
 		end)
 
 		trapped_ = operator.Trapped:Connect(function()
-			run()
+			operator:Run(currentWaypoint.Position)
 		end)
 
 		reachedEvent = operator.Reached:Connect(function()

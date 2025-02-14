@@ -181,9 +181,8 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 	--Finding next waypoint
 	local function nextIndex(selectedPath)
-		currentWaypoint = selectedPath[currentIndex]
 		--Overidding debounce and randomized
-		if currentWaypoint then
+		if selectedPath[currentIndex] then
 			debounce = currentWaypoint:GetAttribute('Debounce')
 			randomized = currentWaypoint:GetAttribute('Randomized')
 		end

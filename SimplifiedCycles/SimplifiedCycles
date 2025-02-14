@@ -181,7 +181,6 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 	--Finding next waypoint
 	local function nextIndex(selectedPath)
-		currentWaypoint = selectedPath[currentIndex]
 		--Overidding debounce and randomized
 		if currentWaypoint then
 			debounce = currentWaypoint:GetAttribute('Debounce')
@@ -262,7 +261,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				end
 
 				local animations = {}
-				
+
 				for i, animation in pairs(currentWaypoint:GetChildren()) do
 					if animation.Name == "Animation" and animation:IsA("Animation") then
 						table.insert(animations, animation)

@@ -383,7 +383,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 					return
 				end
 			end
-			
+
 			run()
 		end)
 
@@ -393,7 +393,6 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 
 		reachedEvent = operator.Reached:Connect(function()
 			reachedFunction()
-			return
 		end)
 
 		--Continue the path
@@ -402,7 +401,6 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 		--Check if the npc is already at the location
 		if distance <= 0.25 then
 			reachedFunction()
-			return
 		else
 			run()
 		end

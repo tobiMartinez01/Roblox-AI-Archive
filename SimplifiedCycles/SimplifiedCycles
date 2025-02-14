@@ -261,12 +261,19 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 					track:Play()
 				end
 
-				local animation = currentWaypoint:FindFirstChild("Animation")
+				local animations = {}
+				
+				for i, animation in pairs(currentWaypoint:GetChildren()) do
+					if animation.Name == "Animation" and animation:IsA("Animation") then
+						table.insert(animations, animation)
+					end
+				end
 
 				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
 					if not self.currentTrack then
 						hrp.Anchored = true
-						self.currentTrack = humanoid.Animator:LoadAnimation(animation)
+						local playAnim = animations[math.random(1, #animations)]
+						self.currentTrack = humanoid.Animator:LoadAnimation(playAnim)
 						self.currentTrack:Play()
 					end
 				end

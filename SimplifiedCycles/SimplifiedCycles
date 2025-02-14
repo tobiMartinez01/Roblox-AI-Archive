@@ -252,7 +252,8 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				--Play animation
 
 				local enter = currentWaypoint:FindFirstChild("Enter")
-
+				local playAnim
+				
 				if enter then
 					local track = humanoid.Animator:LoadAnimation(enter)
 					track.Looped = false
@@ -271,14 +272,14 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
 					if not self.currentTrack then
 						hrp.Anchored = true
-						local playAnim = animations[math.random(1, #animations)]
+						playAnim = animations[math.random(1, #animations)]
 						self.currentTrack = humanoid.Animator:LoadAnimation(playAnim)
 						self.currentTrack:Play()
 					end
 				end
 			end
 
-			self.ReachedBindable:Fire(currentWaypoint)
+			self.ReachedBindable:Fire(currentWaypoint, playAnim)
 
 			--Cleanup
 			currentWaypoint:SetAttribute("Unavailable", nil)

@@ -232,6 +232,8 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 			--Saving last waypoints (for effective rng)
 			lastWaypoint2 = lastWaypoint
 			lastWaypoint = currentWaypoint
+			
+			local playAnim
 
 			--Detect if there is a set stare position
 			if currentWaypoint:FindFirstChildWhichIsA("Attachment") then
@@ -252,8 +254,7 @@ local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preR
 				--Play animation
 
 				local enter = currentWaypoint:FindFirstChild("Enter")
-				local playAnim
-				
+
 				if enter then
 					local track = humanoid.Animator:LoadAnimation(enter)
 					track.Looped = false

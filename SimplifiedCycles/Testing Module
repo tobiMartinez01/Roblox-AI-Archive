@@ -48,7 +48,7 @@ function agent.new(character, costs)
 		while RunService.Heartbeat:Wait() do
 			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not self.Path.Idle then
 				local origin = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * (hrp.Size.Z / 2)))
-				local size = Vector3.new(2, hrp.Size.Y, 2)
+				local size = Vector3.new(0.1, hrp.Size.Y, 0.1)
 
 				local overlap = OverlapParams.new()
 				overlap.RespectCanCollide = true
@@ -126,7 +126,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	local ANIMATOR = humanoid.Animator
 
 	--Thresholds
-	local reachedThreshold = 0.25
+	local reachedThreshold = 0.01
 
 	--Getting waypoints
 	local pathWaypoints = importWaypoints(waypoints)
@@ -220,7 +220,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 			if not path.Idle then
 				path:Stop()
 			end
-			
+
 			--Record
 			FINISHED+=1
 
@@ -250,10 +250,10 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 				LOOKTWEEN:Play()
 				LOOKTWEEN.Completed:Wait()
-				
+
 				--Fire event
 				self.events.Reached:Fire(REACHED_WAYPOINT, INTERACTION)
-				
+
 				hrp.Anchored = true
 
 				local ENTER_ANIMATION = REACHED_WAYPOINT:FindFirstChild("Enter")

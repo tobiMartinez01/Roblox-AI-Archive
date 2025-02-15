@@ -6,21 +6,20 @@ local Costs = {
 	Blocked = math.huge,
 }
 
-local NPC = workspace.NPCs["Bricktopia Bay"].Rose.Rose
-local waypoints = workspace.NPCs["Bricktopia Bay"].Rose
+local NPC = workspace.NPCs["Bricktopia Bay"].Episo.Episo
+local waypoints = workspace.NPCs["Bricktopia Bay"].Episo
 
 local agent = SimplifiedWander.new(NPC, Costs)
-agent.Path = waypoints
-agent.Debounce = 0
+agent.Debounce = 2
 agent.Randomized = true
-agent.Start = 1 --Start at #index waypoint first
 
-agent:Run()
+agent:Run(waypoints)
 
-agent.Reached:Connect(function(currentWaypoint)
-	--Here
+agent.Next:Connect(function(nextWaypoint)
+	print(NPC.Name, "is going to", nextWaypoint)
 end)
 
-agent.Played:Connect(function(nextWaypoint)
-	--Here
+agent.Reached:Connect(function(reachedWaypoint)
+	print(NPC.Name, "reached", reachedWaypoint)
 end)
+

@@ -18,15 +18,15 @@ function agent.new(character, costs)
 			Next = Instance.new("BindableEvent")
 		}
 	}
-	
+
 	--Asign a new metatable to agent
 	local self = setmetatable(newAgent, agent)
-	
+
 	--Variables
 	self.Character = character
 	self.Reached = self.events.Reached.Event
 	self.Next = self.events.Next.Event
-	
+
 	--Creating NoobPath
 	local pathParams = {
 		AgentHeight = character:GetExtentsSize().Y,
@@ -37,24 +37,24 @@ function agent.new(character, costs)
 			SupportPartialPath = true
 		}
 	}
-	
+
 	self.Path = NoobPath.Humanoid(character, pathParams)
-	
+
 	--Jump mechanic
 	local humanoid = character.Humanoid
 	local hrp = character.HumanoidRootPart
-	
+
 	coroutine.wrap(function()
 		while RunService.Heartbeat:Wait() do
 			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not self.Path.Idle then
 				local origin = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * (hrp.Size.Z / 2)))
 				local size = Vector3.new(2, hrp.Size.Y, 2)
-				
+
 				local overlap = OverlapParams.new()
 				overlap.RespectCanCollide = true
 				overlap.FilterType = Enum.RaycastFilterType.Exclude
 				overlap.FilterDescendantsInstances = {character}
-				
+
 				local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
 
 				for i, part in pairs(obstacle) do
@@ -90,7 +90,7 @@ function agent.new(character, costs)
 			end
 		end
 	end)()
-	
+
 	return self
 end
 
@@ -102,7 +102,7 @@ end
 
 function importWaypoints(table_)
 	local sendData = {}
-	
+
 	if type(table_) == table then
 		--Override sendData to table_
 		sendData = table_
@@ -114,10 +114,10 @@ function importWaypoints(table_)
 			end
 		end
 	end
-	
+
 	--Sort waypoints
 	sortTable(sendData)
-	
+
 	return sendData
 end
 
@@ -126,32 +126,32 @@ function agent:Run(waypoints)
 	local Character = self.Character
 	local humanoid = Character.Humanoid
 	local hrp = Character.HumanoidRootPart
-	
+
 	local path = self.Path
 	local ANIMATOR = humanoid.Animator
-	
+
 	--Thresholds
 	local reachedThreshold = 0.25
-	
+
 	--Getting waypoints
 	local pathWaypoints = importWaypoints(waypoints)
-	
+
 	--Path variables
 	local CURRENT_INDEX = 0
 	local LAST_INDEX
 	local LAST_OF_LAST_INDEX
 	local FINISHED = 0
-	
+
 	--Finding new index
 	local function findNextIndex()
 		--Saving indexes
 		LAST_OF_LAST_INDEX = LAST_INDEX
 		LAST_INDEX = CURRENT_INDEX
-		
+
 		--Overriding debounce and randomized
 		if pathWaypoints[LAST_INDEX] then
 			local REACHED_WAYPOINT = pathWaypoints[LAST_INDEX]
-			
+
 			if REACHED_WAYPOINT then
 				self.Debounce = REACHED_WAYPOINT:GetAttribute("Debounce")
 				self.Randomized = REACHED_WAYPOINT:GetAttribute("Randomized")
@@ -160,24 +160,24 @@ function agent:Run(waypoints)
 				self.Randomized = self.Randomized
 			end
 		end
-		
+
 		--Next index
 		if self.Randomized then
 			--Random new index until we get a brand new waypoint
 			repeat
 				CURRENT_INDEX = math.random(1, #pathWaypoints)
-			until (#pathWaypoints < 4 or (pathWaypoints[CURRENT_INDEX] ~= pathWaypoints[LAST_INDEX] and pathWaypoints[CURRENT_INDEX] ~= pathWaypoints[LAST_OF_LAST_INDEX])) and not pathWaypoints[CURRENT_INDEX]:GetAttribute("Unavailable")
+			until (#pathWaypoints < 4 or (pathWaypoints[CURRENT_INDEX] ~= pathWaypoints[LAST_INDEX] and pathWaypoints[CURRENT_INDEX] ~= pathWaypoints[LAST_OF_LAST_INDEX])) and not pathWaypoints[CURRENT_INDEX]:GetAttribute("Unavailable") and pathWaypoints[CURRENT_INDEX] ~= pathWaypoints[LAST_INDEX]
 		else
 			--Following the order
 			CURRENT_INDEX+=1
-			
+
 			--Restart if finished the path
 			if CURRENT_INDEX > #pathWaypoints then
 				CURRENT_INDEX = 1
 			end
 		end
-		
-		
+
+
 		--If CURRENT_INDEX was manually overrided
 		--[[
 		if self.StartFrom then
@@ -186,45 +186,45 @@ function agent:Run(waypoints)
 		end
 		]]
 	end
-	
+
 	local function goToNextWaypoint()
 		--Get next index
 		findNextIndex()
-		
+
 		local CURRENT_WAYPOINT = pathWaypoints[CURRENT_INDEX]
-		
+
 		local function isReached()
 			--Record
 			FINISHED+=1
-			
+
 			--Clean up
 			self.REACHED_EVENT:Disconnect()
 			self.ERROR_EVENT:Disconnect()
 			self.TRAPPED_EVENT:Disconnect()
-			
+
 			local REACHED_WAYPOINT = CURRENT_WAYPOINT
-			
+
 			local INTERACTION = nil
-			
+
 			local ATTACHMENT = REACHED_WAYPOINT:FindFirstChildWhichIsA("Attachment")
 			--Detect if the npc has to stare at a specific position
 			if ATTACHMENT then
 				--Make the NPC look to the attachment
 				local ORIGIN = REACHED_WAYPOINT.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
 				local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
-				
+
 				--Making sure the NPC isn't on air, climbing or moving
 				repeat 
 					RunService.Heartbeat:Wait()
 				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and hrp.Velocity.Magnitude < 0.01
-				
+
 				local TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut)
 				local LOOKTWEEN = TweenService:Create(hrp, TWEEN_INFO, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
-				
+
 				LOOKTWEEN:Play()
 				LOOKTWEEN.Completed:Wait()
 				hrp.Anchored = true
-				
+
 				local ENTER_ANIMATION = REACHED_WAYPOINT:FindFirstChild("Enter")
 				--Detect if the waypoint has an entrance animation
 				if ENTER_ANIMATION then
@@ -234,9 +234,9 @@ function agent:Run(waypoints)
 					ANIMATION_TRACK:Play()
 					ANIMATION_TRACK.Stopped:Wait()
 				end
-				
+
 				--Detect if the waypoint has an interact animation
-				
+
 				local INTERACT_ANIMATIONS = {}
 				--Get available animations
 				for i, animation in pairs(REACHED_WAYPOINT:GetChildren()) do
@@ -244,35 +244,35 @@ function agent:Run(waypoints)
 						table.insert(INTERACT_ANIMATIONS, animation)
 					end
 				end
-				
+
 				if #INTERACT_ANIMATIONS > 0 then
 					INTERACTION = INTERACT_ANIMATIONS[math.random(1, #INTERACT_ANIMATIONS)]
-					
+
 					self.INTERACTION = ANIMATOR:LoadAnimation(INTERACTION)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 					self.INTERACTION:Play()
 				end
 			end
-			
+
 			--Fire event
 			self.events.Reached:Fire(REACHED_WAYPOINT, INTERACTION)
-			
+
 			--Continue
 			goToNextWaypoint()
 		end
-		
+
 		local function goTo()
 			--Fire event
 			self.events.Next:Fire(CURRENT_WAYPOINT)
-			
+
 			hrp.Anchored = false
-			
+
 			--Stopping interaction
 			if self.INTERACTION then
 				self.INTERACTION:Stop()
 				self.INTERACTION = nil
 			end
-			
+
 			--Detect if the waypoint has an exit animation
 			local LEAVE_ANIMATION = CURRENT_WAYPOINT:FindFirstChild("Leave")
 
@@ -283,17 +283,17 @@ function agent:Run(waypoints)
 				ANIMATION_TRACK:Play()
 				ANIMATION_TRACK.Stopped:Wait()
 			end
-			
+
 			--Check if the npc is already at the waypoint
 			local distance = ((hrp.Position * Vector3.new(1, 0, 1) + CURRENT_WAYPOINT.Position * Vector3.new(0, 1, 0)) - CURRENT_WAYPOINT.Position).Magnitude
-			
+
 			if distance <= reachedThreshold then
 				isReached()
 			else
 				path:Run(CURRENT_WAYPOINT.Position)
 			end
 		end
-		
+
 		--Connections
 		self.REACHED_EVENT = path.Reached:Connect(function()
 			isReached()
@@ -308,13 +308,13 @@ function agent:Run(waypoints)
 		self.TRAPPED_EVENT = path.Trapped:Connect(function()
 			goTo()
 		end)
-		
+
 		--Yield
 		task.wait(self.Debounce)
-		
+
 		goTo()
 	end
-	
+
 	--First time running
 	goToNextWaypoint()
 end

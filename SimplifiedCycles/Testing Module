@@ -282,11 +282,8 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					self.INTERACTION = ANIMATOR:LoadAnimation(INTERACTION)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 					self.INTERACTION:Play()
- 
+
 					task.wait(self.INTERACTION.Length)
-					if self.INTERACTION.IsPlaying == true then
-						task.wait(self.Debounce - self.INTERACTION.Length)
-					end
 				end
 			end
 

@@ -103,15 +103,10 @@ end
 function importWaypoints(table_)
 	local sendData = {}
 
-	if type(table_) == table then
-		--Override sendData to table_
-		sendData = table_
-	else
-		--Inserting waypoints to sendData
-		for i, waypoint in pairs(table_:GetChildren()) do
-			if waypoint:IsA("BasePart") then
-				table.insert(sendData, waypoint)
-			end
+	--Inserting waypoints to sendData
+	for i, waypoint in pairs(table_:GetChildren()) do
+		if waypoint:IsA("BasePart") then
+			table.insert(sendData, waypoint)
 		end
 	end
 
@@ -121,7 +116,7 @@ function importWaypoints(table_)
 	return sendData
 end
 
-function agent:Run(waypoints)
+function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	--Character variables
 	local Character = self.Character
 	local humanoid = Character.Humanoid
@@ -135,12 +130,38 @@ function agent:Run(waypoints)
 
 	--Getting waypoints
 	local pathWaypoints = importWaypoints(waypoints)
+	
+	--Saving main path
+	if not self.MainPath then
+		self.MainPath = waypoints
+	end
 
 	--Path variables
 	local CURRENT_INDEX = 0
 	local LAST_INDEX
 	local LAST_OF_LAST_INDEX
 	local FINISHED = 0
+	
+	local UPPER_CURRENT_INDEX
+	local UPPER_LAST_INDEX
+	local UPPER_LAST_OF_LAST_INDEX
+	local UPPER_FINISHED
+	
+	--Saving Upper path
+	if UPPER_PATH then
+		UPPER_CURRENT_INDEX = UPPER_PATH.CURRENT_INDEX
+		UPPER_LAST_INDEX = UPPER_PATH.LAST_INDEX
+		UPPER_LAST_OF_LAST_INDEX = UPPER_PATH.LAST_OF_LAST_INDEX
+		UPPER_FINISHED = UPPER_PATH.FINISHED
+	end
+	
+	--Restoring from sub path
+	if SUB_PATH then
+		CURRENT_INDEX = SUB_PATH.CURRENT_INDEX
+		LAST_INDEX = SUB_PATH.LAST_INDEX
+		LAST_OF_LAST_INDEX = SUB_PATH.LAST_OF_LAST_INDEX
+		FINISHED = SUB_PATH.FINISHED
+	end
 
 	--Finding new index
 	local function findNextIndex()
@@ -149,16 +170,17 @@ function agent:Run(waypoints)
 		LAST_INDEX = CURRENT_INDEX
 
 		--Overriding debounce and randomized
-		if pathWaypoints[LAST_INDEX] then
-			local REACHED_WAYPOINT = pathWaypoints[LAST_INDEX]
+		local REACHED_WAYPOINT = pathWaypoints[LAST_INDEX]
 
-			if REACHED_WAYPOINT then
-				self.Debounce = REACHED_WAYPOINT:GetAttribute("Debounce")
-				self.Randomized = REACHED_WAYPOINT:GetAttribute("Randomized")
-			else
-				self.Debounce = self.Debounce
-				self.Randomized = self.Randomized
-			end
+		if REACHED_WAYPOINT and not UPPER_PATH and not SUB_PATH then
+			self.Debounce = REACHED_WAYPOINT:GetAttribute("Debounce")
+			self.Randomized = REACHED_WAYPOINT:GetAttribute("Randomized")
+		elseif UPPER_PATH then
+			self.Debounce = UPPER_PATH.DEBOUNCE
+			self.Randomized = UPPER_PATH.RANDOMIZED
+		elseif SUB_PATH then
+			self.Debounce = SUB_PATH.DEBOUNCE
+			self.Randomized = SUB_PATH.RANDOMIZED
 		end
 
 		--Next index
@@ -251,6 +273,10 @@ function agent:Run(waypoints)
 					self.INTERACTION = ANIMATOR:LoadAnimation(INTERACTION)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 					self.INTERACTION:Play()
+					
+					if self.INTERACTION.Looped == false then
+						self.INTERACTION.Stopped:Wait()
+					end
 				end
 			end
 
@@ -258,7 +284,44 @@ function agent:Run(waypoints)
 			self.events.Reached:Fire(REACHED_WAYPOINT, INTERACTION)
 
 			--Continue
-			goToNextWaypoint()
+			
+			--Subwaypoints and prewaypoints
+			local SUB_WAYPOINTS = importWaypoints(REACHED_WAYPOINT)
+			
+			if #SUB_WAYPOINTS > 0 then
+				--Sending current path saves to sub-path
+				
+				local sendData = {
+					CURRENT_INDEX = CURRENT_INDEX,
+					LAST_INDEX = LAST_INDEX,
+					LAST_OF_LAST_INDEX = LAST_OF_LAST_INDEX,
+					FINISHED = FINISHED,
+					DEBOUNCE = self.Debounce,
+					RANDOMIZED = self.Randomized
+				}
+				
+				self:Run(REACHED_WAYPOINT, sendData)
+			else
+				if FINISHED < #pathWaypoints or waypoints == self.MainPath then
+					goToNextWaypoint()
+				else
+					if REACHED_WAYPOINT.Parent.Parent then
+						local UPPER_WAYPOINTS = importWaypoints(REACHED_WAYPOINT.Parent.Parent)
+						
+						--Restoring upper path continuation
+						local sendData = {
+							CURRENT_INDEX = UPPER_CURRENT_INDEX,
+							LAST_INDEX = UPPER_LAST_INDEX,
+							LAST_OF_LAST_INDEX = UPPER_LAST_OF_LAST_INDEX,
+							FINISHED = FINISHED,
+							DEBOUNCE = self.Debounce,
+							RANDOMIZED = self.Randomized
+						}
+						
+						self:Run(REACHED_WAYPOINT.Parent.Parent, nil, sendData)
+					end
+				end
+			end
 		end
 
 		local function goTo()
@@ -273,15 +336,18 @@ function agent:Run(waypoints)
 				self.INTERACTION = nil
 			end
 
-			--Detect if the waypoint has an exit animation
-			local LEAVE_ANIMATION = CURRENT_WAYPOINT:FindFirstChild("Leave")
+			--Detect if last waypoint exists
+			if pathWaypoints[LAST_INDEX] then
+				--Detect if the last waypoint has an exit animation
+				local LEAVE_ANIMATION = pathWaypoints[LAST_INDEX]:FindFirstChild("Leave")
 
-			if LEAVE_ANIMATION then
-				local ANIMATION_TRACK = ANIMATOR:LoadAnimation(LEAVE_ANIMATION)
-				ANIMATION_TRACK.Looped = false
-				ANIMATION_TRACK.Priority = Enum.AnimationPriority.Action2
-				ANIMATION_TRACK:Play()
-				ANIMATION_TRACK.Stopped:Wait()
+				if LEAVE_ANIMATION then
+					local ANIMATION_TRACK = ANIMATOR:LoadAnimation(LEAVE_ANIMATION)
+					ANIMATION_TRACK.Looped = false
+					ANIMATION_TRACK.Priority = Enum.AnimationPriority.Action2
+					ANIMATION_TRACK:Play()
+					ANIMATION_TRACK.Stopped:Wait()
+				end
 			end
 
 			--Check if the npc is already at the waypoint

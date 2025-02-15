@@ -130,7 +130,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 	--Getting waypoints
 	local pathWaypoints = importWaypoints(waypoints)
-	
+
 	--Saving main path
 	if not self.MainPath then
 		self.MainPath = waypoints
@@ -141,12 +141,12 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	local LAST_INDEX
 	local LAST_OF_LAST_INDEX
 	local FINISHED = 0
-	
+
 	local UPPER_CURRENT_INDEX
 	local UPPER_LAST_INDEX
 	local UPPER_LAST_OF_LAST_INDEX
 	local UPPER_FINISHED
-	
+
 	--Saving Upper path
 	if UPPER_PATH then
 		UPPER_CURRENT_INDEX = UPPER_PATH.CURRENT_INDEX
@@ -154,7 +154,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 		UPPER_LAST_OF_LAST_INDEX = UPPER_PATH.LAST_OF_LAST_INDEX
 		UPPER_FINISHED = UPPER_PATH.FINISHED
 	end
-	
+
 	--Restoring from sub path
 	if SUB_PATH then
 		CURRENT_INDEX = SUB_PATH.CURRENT_INDEX
@@ -216,6 +216,11 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 		local CURRENT_WAYPOINT = pathWaypoints[CURRENT_INDEX]
 
 		local function isReached()
+			--Making sure the path has to be idle
+			if not path.Idle then
+				path:Stop()
+			end
+			
 			--Record
 			FINISHED+=1
 
@@ -238,13 +243,17 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				--Making sure the NPC isn't on air, climbing or moving
 				repeat 
 					RunService.Heartbeat:Wait()
-				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and hrp.Velocity.Magnitude < 0.01
+				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and hrp.Velocity.Magnitude < 0.01 and path.Idle
 
 				local TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut)
 				local LOOKTWEEN = TweenService:Create(hrp, TWEEN_INFO, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 
 				LOOKTWEEN:Play()
 				LOOKTWEEN.Completed:Wait()
+				
+				--Fire event
+				self.events.Reached:Fire(REACHED_WAYPOINT, INTERACTION)
+				
 				hrp.Anchored = true
 
 				local ENTER_ANIMATION = REACHED_WAYPOINT:FindFirstChild("Enter")
@@ -273,24 +282,21 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					self.INTERACTION = ANIMATOR:LoadAnimation(INTERACTION)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 					self.INTERACTION:Play()
-					
+
 					if self.INTERACTION.Looped == false then
 						self.INTERACTION.Stopped:Wait()
 					end
 				end
 			end
 
-			--Fire event
-			self.events.Reached:Fire(REACHED_WAYPOINT, INTERACTION)
-
 			--Continue
-			
+
 			--Subwaypoints and prewaypoints
 			local SUB_WAYPOINTS = importWaypoints(REACHED_WAYPOINT)
-			
+
 			if #SUB_WAYPOINTS > 0 then
 				--Sending current path saves to sub-path
-				
+
 				local sendData = {
 					CURRENT_INDEX = CURRENT_INDEX,
 					LAST_INDEX = LAST_INDEX,
@@ -299,7 +305,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					DEBOUNCE = self.Debounce,
 					RANDOMIZED = self.Randomized
 				}
-				
+
 				self:Run(REACHED_WAYPOINT, sendData)
 			else
 				if FINISHED < #pathWaypoints or waypoints == self.MainPath then
@@ -307,7 +313,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				else
 					if REACHED_WAYPOINT.Parent.Parent then
 						local UPPER_WAYPOINTS = importWaypoints(REACHED_WAYPOINT.Parent.Parent)
-						
+
 						--Restoring upper path continuation
 						local sendData = {
 							CURRENT_INDEX = UPPER_CURRENT_INDEX,
@@ -317,7 +323,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 							DEBOUNCE = self.Debounce,
 							RANDOMIZED = self.Randomized
 						}
-						
+
 						self:Run(REACHED_WAYPOINT.Parent.Parent, nil, sendData)
 					end
 				end

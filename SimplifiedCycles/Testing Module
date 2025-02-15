@@ -283,7 +283,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 					self.INTERACTION:Play()
 
-					task.wait(self.INTERACTION.Length)
+					self.Debounce = REACHED_WAYPOINT:GetAttribute("Debounce") - self.INTERACTION.Length
 				end
 			end
 

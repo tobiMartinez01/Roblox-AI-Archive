@@ -249,7 +249,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				local LOOKTWEEN = TweenService:Create(hrp, TWEEN_INFO, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 
 				LOOKTWEEN:Play()
-				LOOKTWEEN.Completed:Wait()
+				--LOOKTWEEN.Completed:Wait()
 
 				--Fire event
 				self.events.Reached:Fire(REACHED_WAYPOINT, INTERACTION)

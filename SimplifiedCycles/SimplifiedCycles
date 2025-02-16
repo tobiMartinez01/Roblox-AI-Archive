@@ -211,7 +211,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				--Making sure the NPC isn't on air, climbing or moving
 				repeat 
 					RunService.Heartbeat:Wait()
-				until HUMANOID.FloorMaterial ~= Enum.Material.Air and HRP.Velocity.Magnitude < 0.01 and path.Idle
+				until HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing and HUMANOID:GetState() ~= Enum.HumanoidStateType.Jumping and HUMANOID:GetState() ~= Enum.HumanoidStateType.Freefall and HUMANOID.FloorMaterial ~= Enum.Material.Air and HRP.Velocity.Magnitude < 0.01 and path.Idle
 
 				local TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut)
 				local LOOKTWEEN = TweenService:Create(HRP, TWEEN_INFO, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
@@ -343,7 +343,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					ANIMATION_TRACK.Ended:Wait()
 				end
 			end
-			
+
 			stopInteraction()
 
 			path:Run(IMCOMING_WAYPOINT.Position)

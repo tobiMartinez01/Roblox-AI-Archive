@@ -245,6 +245,18 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					self.INTERACTION = ANIMATOR:LoadAnimation(INTERACTION)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 				end
+				
+				local function playInteraction()
+					if self.INTERACTION then
+						self.INTERACTION:Play()
+
+						--Yields
+						ANIMATION_TRACK.Ended:Wait()
+						if not self.INTERACTION.Looped then
+							self.INTERACTION.Ended:Wait()
+						end
+					end
+				end
 
 				if ENTER_ANIMATION then
 					--Load animation before playing
@@ -255,15 +267,9 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					ANIMATION_TRACK.Priority = Enum.AnimationPriority.Action2
 					ANIMATION_TRACK:Play()
 
-					if #INTERACT_ANIMATIONS > 0 then
-						self.INTERACTION:Play()
-
-						--Yields
-						ANIMATION_TRACK.Ended:Wait()
-						if not self.INTERACTION.Looped then
-							self.INTERACTION.Ended:Wait()
-						end
-					end
+					playInteraction()
+				else
+					playInteraction()
 				end
 
 				--Continue

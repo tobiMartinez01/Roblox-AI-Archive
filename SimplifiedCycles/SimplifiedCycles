@@ -1,427 +1,224 @@
-local wanderer = {}
---Set to be same indexes
-wanderer.__index = wanderer
+local agent = {}
+agent.__index = agent
 
---Workspaces
-local RunService = game["Run Service"]
-local PathFindingService = game["PathfindingService"]
-local TweenService = game.TweenService
+--Services
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local PathFindingService = game:GetService("PathfindingService")
 
---Libraries
-local NoobPath = require(game.ServerStorage.NoobPath)
+local ServerStorage = game:GetService("ServerStorage")
 
-local random = math.random
+--Modules
+local NoobPath = require(ServerStorage.NoobPath)
 
-function wanderer.new(agent, costs)
-	local new_wander = {}
-	--Bind wander to be new_wander
-	setmetatable(new_wander, wanderer)
-	--Insert but OOP style :P aka custom properties
-	new_wander.Agent = agent
-	new_wander.Path = nil
-	new_wander.Debounce = nil
-	new_wander.Randomized = nil
+function agent.new(character, costs)
+	local newAgent = {
+		events = {
+			Reached = Instance.new("BindableEvent"),
+			Next = Instance.new("BindableEvent")
+		}
+	}
 
-	--Creating Operator
+	--Asign a new metatable to agent
+	local self = setmetatable(newAgent, agent)
+
+	--Variables
+	self.Character = character
+	self.Reached = self.events.Reached.Event
+	self.Next = self.events.Next.Event
+
+	--Creating NoobPath
 	local pathParams = {
-		AgentHeight = agent:GetExtentsSize().Y,
+		AgentHeight = character:GetExtentsSize().Y,
 		AgentCanJump = true,
 		AgentCanClimb = true,
-		--AgentRadius = 2, --Changing this can cause the agent to not running correctly
-		--WaypointSpacing = 1.5,
 		Costs = costs,
 		PathSettings = {
 			SupportPartialPath = true
 		}
 	}
-	--Set up Operator
-	new_wander.PathOperator = NoobPath.Humanoid(agent, pathParams)
 
-	--Setting collisionGroup
-	for i, bodypart in pairs(agent:GetDescendants()) do
-		if bodypart:IsA("BasePart") then
-			bodypart.CollisionGroup = "SelfUncollide"
-		end
-	end
+	self.Path = NoobPath.Humanoid(character, pathParams)
 
-	--Played event
-	new_wander.PlayedBindable = Instance.new("BindableEvent")
-	new_wander.Played = new_wander.PlayedBindable.Event
-
-	--Reached event
-	new_wander.ReachedBindable = Instance.new("BindableEvent")
-	new_wander.Reached = new_wander.ReachedBindable.Event
-
-
-	--Jump
-	local humanoid = agent.Humanoid
-	local hrp = agent.HumanoidRootPart
-
-	local debounce = false
+	--Jump mechanic
+	local humanoid = character.Humanoid
+	local hrp = character.HumanoidRootPart
 
 	coroutine.wrap(function()
-		RunService.Heartbeat:Connect(function()
-			if debounce == false then
-				debounce = true
-				if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not new_wander.PathOperator.Idle then
-					local origin = hrp.CFrame + (hrp.CFrame.LookVector * (hrp.Size.Z/2)) 
-					local size = Vector3.new(2, hrp.Size.Y, 2)
-					local overlap = OverlapParams.new()
-					overlap.RespectCanCollide = true
-					overlap.FilterType = Enum.RaycastFilterType.Exclude
-					overlap.FilterDescendantsInstances = {npc}
-					local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
+		while RunService.Heartbeat:Wait() do
+			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not self.Path.Idle then
+				local origin = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * (hrp.Size.Z / 2)))
+				local size = Vector3.new(0.1, hrp.Size.Y, 0.1)
 
-					for i, part in pairs(obstacle) do
-						if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-							if part.ClassName ~= "TrussPart" then
-								if part.Transparency ~= 1 then
-									local sides = {
-										front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-										back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
-										right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-										left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
-										up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-										down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
-									}
+				local overlap = OverlapParams.new()
+				overlap.RespectCanCollide = true
+				overlap.FilterType = Enum.RaycastFilterType.Exclude
+				overlap.FilterDescendantsInstances = {character}
 
-									local highestSurface = nil
-									local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+				local obstacle = workspace:GetPartBoundsInBox(origin, size, overlap)
 
-									for side, position in pairs(sides) do
-										if position.Y > highestY then
-											highestY = position.Y
-											highestSurface = side
-										end
+				for i, part in pairs(obstacle) do
+					if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+						if part.ClassName ~= "TrussPart" then
+							if part.Transparency ~= 1 then
+								local sides = {
+									front = part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									back = -part.CFrame.LookVector * (part.Size.Z / 2)+part.Position,
+									right = part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									left = -part.CFrame.RightVector * (part.Size.X / 2)+part.Position,
+									up = part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+									down = -part.CFrame.UpVector * (part.Size.Y / 2)+part.Position,
+								}
+
+								local highestSurface = nil
+								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+
+								for side, position in pairs(sides) do
+									if position.Y > highestY then
+										highestY = position.Y
+										highestSurface = side
 									end
+								end
 
-									if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-										humanoid.Jump = true
-									end
+								if (humanoid.JumpPower^2 / (workspace.Gravity * 2)) >= (highestY - hrp.Position.Y) then
+									humanoid.Jump = true
 								end
 							end
 						end
 					end
 				end
-				debounce = false
 			end
-		end)
+		end
 	end)()
 
-	return new_wander
+	return self
 end
 
-local function Run(self, npc, pathFolder, debounce, randomized, subRequest, preRequest)
-	--Calling agent
-	local humanoid = npc.Humanoid
-	local hrp = npc.HumanoidRootPart
-
-	--Caling pathOperator
-	local operator = self.PathOperator
-
-	--Params
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterDescendantsInstances = {npc}
-	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-	raycastParams.RespectCanCollide = true
-	raycastParams.IgnoreWater = true
-
-	local pathWaypoints = {}
-
-	--Getting waypoints data
-	local export_
-
-	if type(pathFolder) == "table" then
-		export_= pathFolder
-	else
-		export_= pathFolder:GetChildren()
-	end
-
-	for i, waypoint in pairs(export_) do
-		if waypoint:IsA("BasePart") then
-			table.insert(pathWaypoints, waypoint)
-		end
-	end
-	--Sort data
-	table.sort(pathWaypoints, function(a, b)
+function sortTable(table_)
+	table.sort(table_, function(a, b)
 		return tonumber(a.Name) < tonumber(b.Name)
 	end)
+end
 
-	--Variables
-	local currentIndex = 0
-	local currentWaypoint
+function importWaypoints(table_)
+	local sendData = {}
 
-	local lastWaypoint = nil
-	local lastWaypoint2 = nil
-
-	local precurrentIndex = nil
-
-	local prelastWaypoint = nil
-	local prelastWaypoint2 = nil
-
-	--Pre-request
-	if subRequest then
-		precurrentIndex = subRequest.precurrentIndex
-
-		prelastWaypoint = subRequest.prelastWaypoint
-		prelastWaypoint2 = subRequest.prelastWaypoint2
+	--Inserting waypoints to sendData
+	for i, waypoint in ipairs(table_:GetChildren()) do
+		if waypoint:IsA("BasePart") then
+			table.insert(sendData, waypoint)
+		end
 	end
 
-	if preRequest then
-		currentIndex = preRequest.currentIndex
+	--Sort waypoints
+	sortTable(sendData)
 
-		lastWaypoint = preRequest.lastWaypoint
-		lastWaypoint2 = preRequest.lastWaypoint2
-	end
+	return sendData
+end
 
-	local preWaypoint = nil
-	local preWaypoint2 = nil
+function disconnectAll(self)
+	self.TrappedEvent:Disconnect()
+	self.ErrorEvent:Disconnect()
+	self.ReachedEvent:Disconnect()
+	print("Disconnected")
+end
 
-	local reached = 0
-
-	--Finding next waypoint
-	local function nextIndex(selectedPath)
-		--Overidding debounce and randomized
-		if selectedPath[currentIndex] then
-			debounce = selectedPath[currentIndex]:GetAttribute('Debounce')
-			randomized = selectedPath[currentIndex]:GetAttribute('Randomized')
+function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
+	--Character variables
+	local CHARACTER = self.Character
+	local HRP = CHARACTER.HumanoidRootPart
+	local HUMANOID = CHARACTER.Humanoid 
+	
+	--Importing waypoints
+	local pathWaypoints = importWaypoints(waypoints)
+	local path = self.Path
+	
+	--Indexes
+	local CURRENT_INDEX = 1
+	local LAST_INDEX = nil
+	
+	local function findNextIndex()
+		LAST_INDEX = CURRENT_INDEX
+		
+		local REACHED_WAYPOINT = pathWaypoints[LAST_INDEX]
+		
+		if REACHED_WAYPOINT then
+			REACHED_WAYPOINT:SetAttribute("Unavailable", nil)
+			self.Debounce = REACHED_WAYPOINT:GetAttribute("Debounce")
+			self.Randomized = REACHED_WAYPOINT:GetAttribute("Randomized")
 		end
-
-		if randomized then
-			--Random
-			repeat
-				currentIndex = random(1, #selectedPath)
-			until (#selectedPath < 4 or (selectedPath[currentIndex] ~= lastWaypoint and 
-				selectedPath[currentIndex] ~= lastWaypoint2)) and not selectedPath[currentIndex]:GetAttribute('Unvailable') and
-				selectedPath[currentIndex] ~= currentWaypoint
-		else
-			--In order
-			currentIndex+=1
-
-			if currentIndex > #pathWaypoints then
-				currentIndex = 1
-			end
-
-		end
-
-		if self.Start then
-			currentIndex = self.Start
-			self.Start = nil
-		end
-
-		currentWaypoint = selectedPath[currentIndex]
-		currentWaypoint:SetAttribute("Unavailable", true)
-	end
-
-	--Walk
-	local function goTo(selectedPath)
+		
 		--Find next index
-		nextIndex(selectedPath)
-
-		--Yield depending on previous waypoint set Debounce
-		task.wait(debounce)
-
-		--Connections calls
-		local reachedEvent
-		local error_
-		local trapped_
-
-		--Reached function
-		local function reachedFunction()
-			reached+=1
-			--Saving last waypoints (for effective rng)
-			lastWaypoint2 = lastWaypoint
-			lastWaypoint = currentWaypoint
-
-			local playAnim
-
-			--Detect if there is a set stare position
-			if currentWaypoint:FindFirstChildWhichIsA("Attachment") then
-
-				--Stares
-				local lookPoint = currentWaypoint:FindFirstChildWhichIsA("Attachment")
-
-				local lookPointPos = currentWaypoint.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
-				local fixedLookAtPos = lookPoint.WorldCFrame.Position * Vector3.new(1, 0, 1) + hrp.Position * Vector3.new(0, 1, 0)
-
-				repeat
-					RunService.Heartbeat:Wait()
-				until humanoid:GetState() ~= Enum.HumanoidStateType.Freefall and hrp.Velocity.Magnitude < 0.01
-
-				local stare = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut), {CFrame = CFrame.new(lookPointPos, fixedLookAtPos)})
-				stare:Play()
-
-				--Play animation
-
-				local enter = currentWaypoint:FindFirstChild("Enter")
-
-				if enter then
-					local track = humanoid.Animator:LoadAnimation(enter)
-					track.Looped = false
-					track.Priority = Enum.AnimationPriority.Action2
-					track:Play()
-				end
-
-				local animations = {}
-
-				for i, animation in pairs(currentWaypoint:GetChildren()) do
-					if animation.Name == "Animation" and animation:IsA("Animation") then
-						table.insert(animations, animation)
-					end
-				end
-
-				if currentWaypoint:FindFirstChildWhichIsA("Animation") then
-					if not self.currentTrack then
-						hrp.Anchored = true
-						playAnim = animations[math.random(1, #animations)]
-						self.currentTrack = humanoid.Animator:LoadAnimation(playAnim)
-						self.currentTrack:Play()
-					end
-				end
-			end
-
-			self.ReachedBindable:Fire(currentWaypoint, playAnim)
-
-			--Cleanup
-			currentWaypoint:SetAttribute("Unavailable", nil)
-			error_:Disconnect()
-			trapped_:Disconnect()
-			reachedEvent:Disconnect()
-
-			--Detect sub waypoints
-			local subwaypoints = {}
-
-			for i, waypoint in pairs(currentWaypoint:GetChildren()) do
-				if waypoint:IsA("BasePart") then
-					table.insert(subwaypoints, waypoint)
-				end
-			end
-			--Sort data
-			table.sort(subwaypoints, function(a, b)
-				return tonumber(a.Name) < tonumber(b.Name)
-			end)
-
-			if #subwaypoints > 0 then
-
-				--Archive
-				local sendData = {
-					precurrentIndex = currentIndex,
-					prelastWaypoint = lastWaypoint,
-					prelastWaypoint2 = lastWaypoint2
-				}
-
-				Run(self, self.Agent, subwaypoints, debounce, randomized, sendData)
-			else
-				if reached < #pathWaypoints or pathFolder == self.Path then
-					goTo(pathWaypoints)
-				else
-					if currentWaypoint.Parent.Parent then
-						local prewaypoints = {}
-						local prePath = currentWaypoint.Parent.Parent:GetChildren()
-
-						for i, waypoint in pairs(prePath) do
-							if waypoint:IsA("BasePart") then
-								table.insert(prewaypoints, waypoint)
-							end
-						end
-
-						--Sort data
-						table.sort(prewaypoints, function(a, b)
-							return tonumber(a.Name) < tonumber(b.Name)
-						end)
-
-						--Restore
-						local sendData = {
-							currentIndex = precurrentIndex,
-							lastWaypoint = prelastWaypoint,
-							lastWaypoint2 = prelastWaypoint2
-						}
-
-						Run(self, self.Agent, prewaypoints, debounce, randomized, nil, sendData)
-					end
-				end
-			end
-		end
-
-		--Run function
-		local function run()
-			--Fire event
-			self.PlayedBindable:Fire(currentWaypoint)
-
-			--Stop current animation
-			if self.currentTrack then
-				self.currentTrack:Stop()
-				self.currentTrack = nil
-			end
-
-			--Leaving animation
-
-			if lastWaypoint then
-				local leave = lastWaypoint:FindFirstChild("Leave")
-
-				if leave then
-					local track = humanoid.Animator:LoadAnimation(leave)
-					track.Looped = false
-					track.Priority = Enum.AnimationPriority.Action2
-					track:Play()
-					track.Stopped:Wait()
-				end
-			end
-
-			hrp.Anchored = false
-
-			operator:Run(currentWaypoint.Position)
-		end
-
-		--Connections
-		error_ = operator.Error:Connect(function(errortype)
-			--Check if the npc is already at the location
-			if errortype == "PathTooShort" or errortype == "TargetUnreachable" then
-				local distance = (hrp.Position - Vector3.new(currentWaypoint.Position.X, hrp.Position.Y, currentWaypoint.Position.Z)).Magnitude
-				if distance <= 0.25 then
-					reachedFunction()
-					return
-				end
-			end
-
-			operator:Run(currentWaypoint.Position)
-		end)
-
-		trapped_ = operator.Trapped:Connect(function()
-			operator:Run(currentWaypoint.Position)
-		end)
-
-		reachedEvent = operator.Reached:Connect(function()
-			reachedFunction()
-		end)
-
-		--Continue the path
-		local distance = (hrp.Position - Vector3.new(currentWaypoint.Position.X, hrp.Position.Y, currentWaypoint.Position.Z)).Magnitude
-
-		--Check if the npc is already at the location
-		if distance <= 0.25 then
-			reachedFunction()
+		if self.Randomized then
+			repeat 
+				CURRENT_INDEX = math.random(1, #pathWaypoints)
+			until (#pathWaypoints < 2 or CURRENT_INDEX ~= LAST_INDEX) and not pathWaypoints[CURRENT_INDEX]:GetAttribute("Unavailable") 
 		else
-			run()
+			CURRENT_INDEX = CURRENT_INDEX % #pathWaypoints + 1
+		end
+		
+		local IMCOMING_WAYPOINT = pathWaypoints[CURRENT_INDEX]
+		IMCOMING_WAYPOINT:SetAttribute("Unavailable", true)
+	end
+	
+	local function walk()
+		local function reached()
+			local REACHED_WAYPOINT = pathWaypoints[CURRENT_INDEX]
+			findNextIndex()
+			disconnectAll(self)
+			
+			local ATTACHMENT = REACHED_WAYPOINT:FindFirstChildWhichIsA("Attachment")
+			
+			if ATTACHMENT then
+				--Make the NPC look to the attachment
+				local ORIGIN = REACHED_WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+				local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+
+				--Making sure the NPC isn't on air, climbing or moving
+				repeat 
+					RunService.Heartbeat:Wait()
+				until HUMANOID.FloorMaterial ~= Enum.Material.Air and HRP.Velocity.Magnitude < 0.01 and path.Idle
+
+				local TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection. InOut)
+				local LOOKTWEEN = TweenService:Create(HRP, TWEEN_INFO, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
+
+				HRP.Anchored = true
+				
+				LOOKTWEEN:Play()
+				
+				--Continue
+				walk()
+			end
+		end
+		
+		local IMCOMING_WAYPOINT = pathWaypoints[CURRENT_INDEX]
+		
+		local distance = ((HRP.Position * Vector3.new(1, 0, 1) + IMCOMING_WAYPOINT.Position * Vector3.new(0, 1, 0)) - IMCOMING_WAYPOINT.Position).Magnitude
+		
+		self.TrappedEvent = path.Trapped:Connect(function()
+			path:Run(IMCOMING_WAYPOINT.Position)
+		end)
+		
+		self.ErrorEvent = path.Error:Connect(function()
+			path:Run(IMCOMING_WAYPOINT.Position)
+		end)
+		
+		self.ReachedEvent = path.Reached:Connect(function()
+			reached()
+		end)
+		
+		if distance <= 0.01 then
+			reached()
+		else
+			task.wait(self.Debounce)
+			
+			HRP.Anchored = false
+			
+			path:Run(IMCOMING_WAYPOINT.Position)
 		end
 	end
-
-	--Run for the first time
-	goTo(pathWaypoints)
+	
+	walk()
 end
 
-function wanderer:Run()
-	if not self.RunningThread then
-		self.RunningThread = coroutine.create(Run)
-		coroutine.resume(self.RunningThread, self, self.Agent, self.Path, self.Debounce, self.Randomized)
-	end
-end
-
-function wanderer:Stop()
-	if self.RunningThread then
-		coroutine.close(self.RunningThread)
-		self.RunningThread = nil
-	end
-end
-
-return wanderer
+return agent

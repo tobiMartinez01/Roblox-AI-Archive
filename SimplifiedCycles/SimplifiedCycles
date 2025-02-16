@@ -186,6 +186,14 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 		IMCOMING_WAYPOINT:SetAttribute("Unavailable", true)
 	end
 
+	local function stopInteraction()
+		--Stop interaction
+		if self.INTERACTION then
+			self.INTERACTION:Stop()
+			self.INTERACTION = nil
+		end
+	end
+
 	local function walk()
 		local function reached()
 			FINISHED+=1
@@ -217,7 +225,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 				--Detect if the waypoint has an entrance animation
 				local ENTER_ANIMATION = REACHED_WAYPOINT:FindFirstChild("Enter")
-				
+
 				--Detect if the waypoint has an interact animation
 
 				local INTERACT_ANIMATIONS = {}
@@ -227,7 +235,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 						table.insert(INTERACT_ANIMATIONS, animation)
 					end
 				end
-				
+
 				if #INTERACT_ANIMATIONS > 0 then
 					local INTERACTION = INTERACT_ANIMATIONS[math.random(1, #INTERACT_ANIMATIONS)]
 
@@ -246,10 +254,10 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					ANIMATION_TRACK.Looped = false
 					ANIMATION_TRACK.Priority = Enum.AnimationPriority.Action2
 					ANIMATION_TRACK:Play()
-					
+
 					if #INTERACT_ANIMATIONS > 0 then
 						self.INTERACTION:Play()
-						
+
 						--Yields
 						ANIMATION_TRACK.Ended:Wait()
 						if not self.INTERACTION.Looped then
@@ -331,15 +339,12 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					ANIMATION_TRACK.Looped = false
 					ANIMATION_TRACK.Priority = Enum.AnimationPriority.Action2
 					ANIMATION_TRACK:Play()
+					stopInteraction()
 					ANIMATION_TRACK.Ended:Wait()
 				end
 			end
 			
-			--Stop interaction
-			if self.INTERACTION then
-				self.INTERACTION:Stop()
-				self.INTERACTION = nil
-			end
+			stopInteraction()
 
 			path:Run(IMCOMING_WAYPOINT.Position)
 		end

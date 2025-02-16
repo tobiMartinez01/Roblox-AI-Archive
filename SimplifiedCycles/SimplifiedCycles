@@ -220,9 +220,6 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 				LOOKTWEEN:Play()
 
-				--Fire event
-				self.events.Reached:Fire(REACHED_WAYPOINT)
-
 				--Detect if the waypoint has an entrance animation
 				local ENTER_ANIMATION = REACHED_WAYPOINT:FindFirstChild("Enter")
 				local ANIMATION_TRACK
@@ -230,6 +227,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				--Detect if the waypoint has an interact animation
 
 				local INTERACT_ANIMATIONS = {}
+				local INTERACT_ANIMATIONID
 
 				for i, animation in pairs(REACHED_WAYPOINT:GetChildren()) do
 					if animation:IsA("Animation") and animation.Name ~= "Enter" and animation.Name ~= "Leave" then
@@ -239,13 +237,17 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 				if #INTERACT_ANIMATIONS > 0 then
 					local INTERACTION = INTERACT_ANIMATIONS[math.random(1, #INTERACT_ANIMATIONS)]
-
+					INTERACT_ANIMATIONID = INTERACTION.AnimationId
+					
 					--Load animation before playing
 					game.ContentProvider:PreloadAsync({INTERACTION})
 
 					self.INTERACTION = ANIMATOR:LoadAnimation(INTERACTION)
 					self.INTERACTION.Priority = Enum.AnimationPriority.Action
 				end
+				
+				--Fire event
+				self.events.Reached:Fire(REACHED_WAYPOINT, INTERACT_ANIMATIONID)
 
 				local function playInteraction()
 					if self.INTERACTION then

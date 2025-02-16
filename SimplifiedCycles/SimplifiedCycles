@@ -133,9 +133,33 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	local pathWaypoints = importWaypoints(waypoints)
 	local path = self.Path
 	
+	--Saving main path
+	if not self.MainPath then
+		self.MainPath = waypoints
+	end
+	
 	--Indexes
 	local CURRENT_INDEX = 1
 	local LAST_INDEX = nil
+	local FINISHED = 0
+	
+	local UPPER_CURRENT_INDEX
+	local UPPER_LAST_INDEX
+	local UPPER_FINISHED
+
+	--Saving Upper path
+	if UPPER_PATH then
+		UPPER_CURRENT_INDEX = UPPER_PATH.CURRENT_INDEX
+		UPPER_LAST_INDEX = UPPER_PATH.LAST_INDEX
+		UPPER_FINISHED = UPPER_PATH.FINISHED
+	end
+
+	--Restoring from sub path
+	if SUB_PATH then
+		CURRENT_INDEX = SUB_PATH.CURRENT_INDEX
+		LAST_INDEX = SUB_PATH.LAST_INDEX
+		FINISHED = SUB_PATH.FINISHED
+	end
 	
 	local function findNextIndex()
 		LAST_INDEX = CURRENT_INDEX
@@ -163,6 +187,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	
 	local function walk()
 		local function reached()
+			FINISHED+=1
 			local REACHED_WAYPOINT = pathWaypoints[CURRENT_INDEX]
 			findNextIndex()
 			disconnectAll(self)
@@ -187,7 +212,36 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				LOOKTWEEN:Play()
 				
 				--Continue
-				walk()
+				local SUB_WAYPOINTS = importWaypoints(REACHED_WAYPOINT)
+
+				if #SUB_WAYPOINTS > 0 then
+					--Sending current path saves to sub-path
+
+					local sendData = {
+						CURRENT_INDEX = CURRENT_INDEX,
+						LAST_INDEX = LAST_INDEX,
+						FINISHED = FINISHED,
+					}
+
+					self:Run(REACHED_WAYPOINT, sendData)
+				else
+					if FINISHED < #pathWaypoints or waypoints == self.MainPath then
+						walk()
+					else
+						if REACHED_WAYPOINT.Parent.Parent then
+							local UPPER_WAYPOINTS = importWaypoints(REACHED_WAYPOINT.Parent.Parent)
+
+							--Restoring upper path continuation
+							local sendData = {
+								CURRENT_INDEX = UPPER_CURRENT_INDEX,
+								LAST_INDEX = UPPER_LAST_INDEX,
+								FINISHED = FINISHED,
+							}
+
+							self:Run(REACHED_WAYPOINT.Parent.Parent, nil, sendData)
+						end
+					end
+				end
 			end
 		end
 		

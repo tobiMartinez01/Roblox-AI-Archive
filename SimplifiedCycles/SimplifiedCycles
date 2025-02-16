@@ -225,6 +225,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 				--Detect if the waypoint has an entrance animation
 				local ENTER_ANIMATION = REACHED_WAYPOINT:FindFirstChild("Enter")
+				local ANIMATION_TRACK
 
 				--Detect if the waypoint has an interact animation
 
@@ -251,10 +252,10 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 						self.INTERACTION:Play()
 
 						--Yields
-						if ENTER_ANIMATION then
+						if ANIMATION_TRACK then
 							ANIMATION_TRACK.Ended:Wait()
 						end
-						
+
 						if not self.INTERACTION.Looped then
 							self.INTERACTION.Ended:Wait()
 						end
@@ -265,7 +266,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					--Load animation before playing
 					game.ContentProvider:PreloadAsync({ENTER_ANIMATION})
 
-					local ANIMATION_TRACK = ANIMATOR:LoadAnimation(ENTER_ANIMATION)
+					ANIMATION_TRACK = ANIMATOR:LoadAnimation(ENTER_ANIMATION)
 					ANIMATION_TRACK.Looped = false
 					ANIMATION_TRACK.Priority = Enum.AnimationPriority.Action2
 					ANIMATION_TRACK:Play()

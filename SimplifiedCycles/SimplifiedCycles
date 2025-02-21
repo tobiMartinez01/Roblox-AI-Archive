@@ -16,7 +16,8 @@ function agent.new(character, costs)
 		events = {
 			Reached = Instance.new("BindableEvent"),
 			Next = Instance.new("BindableEvent")
-		}
+		},
+		connections = {}
 	}
 
 	--Asign a new metatable to agent
@@ -28,6 +29,12 @@ function agent.new(character, costs)
 	self.Next = self.events.Next.Event
 
 	--Creating NoobPath
+	for i, bodypart in pairs(character:GetDescendants()) do
+		if bodypart:IsA("BasePart") then
+			bodypart:SetNetworkOwner(nil)
+		end
+	end
+	
 	local pathParams = {
 		AgentHeight = character:GetExtentsSize().Y,
 		AgentCanJump = true,
@@ -117,10 +124,12 @@ function importWaypoints(table_)
 end
 
 function disconnectAll(self)
-	self.TrappedEvent:Disconnect()
-	self.ErrorEvent:Disconnect()
-	self.ReachedEvent:Disconnect()
-	print("Disconnected")
+	for i, connection in pairs(self.connections) do
+		if connection then
+			connection:Disconnect()
+			print("Disconnected", connection)
+		end
+	end
 end
 
 function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
@@ -311,15 +320,15 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 		local IMCOMING_WAYPOINT = pathWaypoints[CURRENT_INDEX]
 
 		--//Connections
-		self.TrappedEvent = path.Trapped:Connect(function()
+		self.connections.TrappedEvent = path.Trapped:Connect(function()
 			path:Run(IMCOMING_WAYPOINT.Position)
 		end)
 
-		self.ErrorEvent = path.Error:Connect(function()
+		self.connections.ErrorEvent = path.Error:Connect(function()
 			path:Run(IMCOMING_WAYPOINT.Position)
 		end)
 
-		self.ReachedEvent = path.Reached:Connect(function()
+		self.connections.ReachedEvent = path.Reached:Connect(function()
 			reached()
 		end)
 
@@ -334,8 +343,6 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 			--//Send signals
 			self.events.Next:Fire(IMCOMING_WAYPOINT)
-
-			HRP.Anchored = false
 
 			--//Stop current interaction
 			if self.INTERACTION then
@@ -358,6 +365,8 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					end
 				end
 			end
+			
+			HRP.Anchored = false
 
 			path:Run(IMCOMING_WAYPOINT.Position)
 		end

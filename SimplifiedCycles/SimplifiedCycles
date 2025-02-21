@@ -128,6 +128,7 @@ function disconnectAll(self)
 	for i, connection in pairs(self.connections) do
 		if connection then
 			connection:Disconnect()
+			self.connections[i] = nil
 		end
 	end
 end

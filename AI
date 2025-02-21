@@ -58,7 +58,7 @@ end
 
 local heartbeatDebounce = false
 
-while RunService.Heartbeat:Wait() do
+while RunService.Heartbeat:Wait(0.1) do
 	local target = findNearest()
 	if target then
 		local target_hrp = target.HumanoidRootPart

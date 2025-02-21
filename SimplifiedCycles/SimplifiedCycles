@@ -268,36 +268,41 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 						self.INTERACTION.Stopped:Wait()
 					end
 				end
+			end
+			
+			--//Send signals
+			if not self.INTERACTION then
+				self.events.Reached:Fire(REACHED_WAYPOINT, nil)
+			end
+			
+			--//Going to the next waypoint
+			local SUB_WAYPOINTS = importWaypoints(REACHED_WAYPOINT)
 
-				--//Going to the next waypoint
-				local SUB_WAYPOINTS = importWaypoints(REACHED_WAYPOINT)
+			if #SUB_WAYPOINTS > 0 then
+				--//Sending current path saves to sub-path
 
-				if #SUB_WAYPOINTS > 0 then
-					--//Sending current path saves to sub-path
+				local sendData = {
+					CURRENT_INDEX = CURRENT_INDEX,
+					LAST_INDEX = LAST_INDEX,
+					FINISHED = FINISHED,
+				}
 
-					local sendData = {
-						CURRENT_INDEX = CURRENT_INDEX,
-						LAST_INDEX = LAST_INDEX,
-						FINISHED = FINISHED,
-					}
-
-					self:Run(REACHED_WAYPOINT, sendData)
+				self:Run(REACHED_WAYPOINT, sendData)
+			else
+				if FINISHED < #pathWaypoints or waypoints == self.MainPath then
+					walk()
 				else
-					if FINISHED < #pathWaypoints or waypoints == self.MainPath then
-						walk()
-					else
-						if REACHED_WAYPOINT.Parent.Parent then
-							local UPPER_WAYPOINTS = importWaypoints(REACHED_WAYPOINT.Parent.Parent)
+					if REACHED_WAYPOINT.Parent.Parent then
+						local UPPER_WAYPOINTS = importWaypoints(REACHED_WAYPOINT.Parent.Parent)
 
-							--//Restoring upper path continuation
-							local sendData = {
-								CURRENT_INDEX = UPPER_CURRENT_INDEX,
-								LAST_INDEX = UPPER_LAST_INDEX,
-								FINISHED = FINISHED,
-							}
+						--//Restoring upper path continuation
+						local sendData = {
+							CURRENT_INDEX = UPPER_CURRENT_INDEX,
+							LAST_INDEX = UPPER_LAST_INDEX,
+							FINISHED = FINISHED,
+						}
 
-							self:Run(REACHED_WAYPOINT.Parent.Parent, nil, sendData)
-						end
+						self:Run(REACHED_WAYPOINT.Parent.Parent, nil, sendData)
 					end
 				end
 			end

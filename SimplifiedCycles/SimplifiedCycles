@@ -34,7 +34,7 @@ function agent.new(character, costs)
 			bodypart:SetNetworkOwner(nil)
 		end
 	end
-	
+
 	local pathParams = {
 		AgentHeight = character:GetExtentsSize().Y,
 		AgentCanJump = true,
@@ -124,10 +124,10 @@ function importWaypoints(table_)
 end
 
 function disconnectAll(self)
+	print(self.Character.Name, "disconnected", self.connections)
 	for i, connection in pairs(self.connections) do
 		if connection then
 			connection:Disconnect()
-			print("Disconnected", connection)
 		end
 	end
 end
@@ -365,7 +365,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 					end
 				end
 			end
-			
+
 			HRP.Anchored = false
 
 			path:Run(IMCOMING_WAYPOINT.Position)

@@ -77,47 +77,54 @@ function agent.new(character, costs)
 	local humanoid = character.Humanoid
 	local hrp = character.HumanoidRootPart
 
+	-- TODO: Reduce lag of the jump mechanic
 	coroutine.wrap(function()
 		-- Using a moderate delay reduces the frequency of heavy collision queries
-		while RunService.Heartbeat:Wait(0.5) do
-			-- Only run if not climbing and the path is active (not idle)
+		while RunService.Heartbeat:Wait(1) do
 			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not self.Path.Idle then
-				local origin = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * (hrp.Size.Z / 2)))
-				local size = Vector3.new(0.1, hrp.Size.Y, 0.1)
+				local ORIGIN = hrp.Position + hrp.CFrame.LookVector * (hrp.Size.Z / 2)
+				local DIRECTION = hrp.CFrame.LookVector * 0.1
+				
+				--//Raycast parameters
+				local RAYCAST_PARAMS = RaycastParams.new()
+				RAYCAST_PARAMS.FilterDescendantsInstances = {character}
+				RAYCAST_PARAMS.FilterType = Enum.RaycastFilterType.Exclude
+				
+				RAYCAST_PARAMS.RespectCanCollide = true
+				RAYCAST_PARAMS.IgnoreWater = true
+				
+				local RAYCAST = workspace:Raycast(ORIGIN, DIRECTION, RAYCAST_PARAMS)
+				
+				if RAYCAST then
+					--//Checking if there is an obstacle
+					local OBSTACLE = RAYCAST.Instance
+					if OBSTACLE then
+						--//Checking if obstacle isn't a character
+						if not OBSTACLE:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+							if OBSTACLE.ClassName ~= "TrussPart" and OBSTACLE.Transparency <= 0.9 then
+								local sides = {
+									front = OBSTACLE.CFrame.LookVector * (OBSTACLE.Size.Z / 2)+OBSTACLE.Position,
+									back = -OBSTACLE.CFrame.LookVector * (OBSTACLE.Size.Z / 2)+OBSTACLE.Position,
+									right = OBSTACLE.CFrame.RightVector * (OBSTACLE.Size.X / 2)+OBSTACLE.Position,
+									left = -OBSTACLE.CFrame.RightVector * (OBSTACLE.Size.X / 2)+OBSTACLE.Position,
+									up = OBSTACLE.CFrame.UpVector * (OBSTACLE.Size.Y / 2)+OBSTACLE.Position,
+									down = -OBSTACLE.CFrame.UpVector * (OBSTACLE.Size.Y / 2)+OBSTACLE.Position,
+								}
 
-				-- Create a new OverlapParams for this query
-				local overlap = OverlapParams.new()
-				overlap.RespectCanCollide = true
-				overlap.FilterType = Enum.RaycastFilterType.Exclude
-				overlap.FilterDescendantsInstances = { character }
+								local highestSurface = nil
+								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
 
-				-- Query obstacles in front of the NPC
-				local obstacles = workspace:GetPartBoundsInBox(origin, size, overlap)
-				for _, part in pairs(obstacles) do
-					-- Skip parts belonging to models that have a Humanoid (e.g. other characters)
-					if not part:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-						-- Exclude specific parts (e.g. TrussPart) and invisible parts
-						if part.ClassName ~= "TrussPart" and part.Transparency ~= 1 then
-							-- Calculate candidate surfaces for jumping (front, back, right, left, up, down)
-							local sides = {
-								front = part.CFrame.LookVector * (part.Size.Z / 2) + part.Position,
-								back = -part.CFrame.LookVector * (part.Size.Z / 2) + part.Position,
-								right = part.CFrame.RightVector * (part.Size.X / 2) + part.Position,
-								left = -part.CFrame.RightVector * (part.Size.X / 2) + part.Position,
-								up = part.CFrame.UpVector * (part.Size.Y / 2) + part.Position,
-								down = -part.CFrame.UpVector * (part.Size.Y / 2) + part.Position,
-							}
-							-- Find the highest surface
-							local highestSurface, highestY = nil, -math.huge
-							for side, pos in pairs(sides) do
-								if pos.Y > highestY then
-									highestY = pos.Y
-									highestSurface = side
+								for side, position in pairs(sides) do
+									if position.Y > highestY then
+										highestY = position.Y
+										highestSurface = side
+									end
 								end
-							end
-							-- If the jump height is sufficient, then jump
-							if (humanoid.JumpPower^2 / (workspace.Gravity * 2)) >= (highestY - hrp.Position.Y) then
-								humanoid.Jump = true
+
+								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
+									humanoid.Jump = true
+									return
+								end
 							end
 						end
 					end

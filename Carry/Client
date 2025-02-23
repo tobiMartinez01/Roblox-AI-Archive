@@ -163,7 +163,8 @@ UIS.InputBegan:Connect(function(input, isChatting)
 				
 				AlignPosition.Position = Object_.CFrame.Position
 				AlignOrientation.CFrame = Object_.CFrame
-
+				
+				--//Loop
 				local drag; drag = RunService.RenderStepped:Connect(function(dt)
 					if IsCarrying then
 						local fpscap = dt*30
@@ -193,10 +194,12 @@ UIS.InputBegan:Connect(function(input, isChatting)
 						drag:Disconnect()
 					end
 				end)
-			else
-				Object = nil
-				Object_ = nil
+				
+				return
 			end
+			
+			Object = nil
+			Object_ = nil
 		end
 	end
 

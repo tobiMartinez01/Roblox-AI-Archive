@@ -123,7 +123,6 @@ function agent.new(character, costs)
 
 								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
 									humanoid.Jump = true
-									return
 								end
 							end
 						end

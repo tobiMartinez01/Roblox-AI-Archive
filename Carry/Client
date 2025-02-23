@@ -1,5 +1,7 @@
 --Client
 local self = script.Parent
+local HIGHLIGHT = script.Selection
+
 local events = game.ReplicatedStorage.Events
 local carry_event = events.Carry
 
@@ -105,22 +107,43 @@ end
 local last_tick = tick()
 local debounce = 0.1
 
-UIS.InputBegan:Connect(function(input, isChatting)
-	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and not Object_ and not IsCarrying then
+--//Mouse movement
+mouse.Move:Connect(function()
+	if not IsCarrying  then
 		local Target = mouse.Target
-		
+
 		--//Finding if model/part is carriable
 		Object = findCarriableAncestor(Target)
 		
 		if Object then
-			--//Checking if instance is a model
+			--//Highlight
+			local MODEL = findModelThroughPrimaryPart(Target)
+			if MODEL then
+				HIGHLIGHT.Adornee = MODEL
+			else
+				HIGHLIGHT.Adornee = Object
+			end
+			
+			
+			--//Assigning
 			if Object:IsA("Model") then
 				Object_ = Object.PrimaryPart
 			else
 				Object_ = Object
 			end
 			
+			return
+		end
+	end
+	
+	--//If fails
+	HIGHLIGHT.Adornee = nil
+end)
+
+UIS.InputBegan:Connect(function(input, isChatting)
+	if isChatting then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and not IsCarrying then
+		if Object_ then
 			--//Checking if player is close enough
 			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
 				IsCarrying = true
@@ -128,7 +151,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 
 				local initialCameraCFrame = CurrentCamera.CFrame
 				local initialOrientation
-				
+
 				--//Getting object orientation
 				if Object:IsA("Model") then
 					initialOrientation = Object.PrimaryPart.CFrame
@@ -138,7 +161,7 @@ UIS.InputBegan:Connect(function(input, isChatting)
 
 				--//Fire event
 				carry_event:InvokeServer(true, Object_)
-				
+
 				--//Carry handling
 				if not HasAlignPosition(Object) then
 					AlignPosition = Instance.new("AlignPosition", Object_)
@@ -160,10 +183,10 @@ UIS.InputBegan:Connect(function(input, isChatting)
 					AlignPosition = Object_:FindFirstChild("IsCarrying")
 					AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
 				end
-				
+
 				AlignPosition.Position = Object_.CFrame.Position
 				AlignOrientation.CFrame = Object_.CFrame
-				
+
 				--//Loop
 				local drag; drag = RunService.RenderStepped:Connect(function(dt)
 					if IsCarrying then
@@ -194,16 +217,16 @@ UIS.InputBegan:Connect(function(input, isChatting)
 						drag:Disconnect()
 					end
 				end)
-				
+
 				return
 			end
-			
+
 			Object = nil
 			Object_ = nil
 		end
 	end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and Object_ and IsCarrying then
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and IsCarrying then
 		Controls:Disable()
 		IsRotating = true
 	end
@@ -211,7 +234,7 @@ end)
 
 UIS.InputEnded:Connect(function(input, isChatting)
 	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and Object_ and IsCarrying then 
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and IsCarrying then 
 		repeat
 			task.wait()
 		until tick() - last_tick >= debounce

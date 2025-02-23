@@ -109,26 +109,37 @@ UIS.InputBegan:Connect(function(input, isChatting)
 	if isChatting then return end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 and not Object_ and not IsCarrying then
 		local Target = mouse.Target
+		
+		--//Finding if model/part is carriable
 		Object = findCarriableAncestor(Target)
+		
 		if Object then
+			--//Checking if instance is a model
 			if Object:IsA("Model") then
 				Object_ = Object.PrimaryPart
 			else
 				Object_ = Object
 			end
+			
+			--//Checking if player is close enough
 			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
 				IsCarrying = true
 				last_tick = tick()
+
 				local initialCameraCFrame = CurrentCamera.CFrame
 				local initialOrientation
+				
+				--//Getting object orientation
 				if Object:IsA("Model") then
 					initialOrientation = Object.PrimaryPart.CFrame
 				else
 					initialOrientation = Object.CFrame
 				end
 
+				--//Fire event
 				carry_event:InvokeServer(true, Object_)
-
+				
+				--//Carry handling
 				if not HasAlignPosition(Object) then
 					AlignPosition = Instance.new("AlignPosition", Object_)
 					AlignPosition.Name = "IsCarrying"

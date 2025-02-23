@@ -73,65 +73,6 @@ function agent.new(character, costs)
 	}
 	self.Path = NoobPath.Humanoid(character, pathParams)
 
-	-- Jump Mechanic (run in a coroutine)
-	local humanoid = character.Humanoid
-	local hrp = character.HumanoidRootPart
-
-	-- TODO: Reduce lag of the jump mechanic
-	coroutine.wrap(function()
-		-- Using a moderate delay reduces the frequency of heavy collision queries
-		while RunService.Heartbeat:Wait(1) do
-			if humanoid:GetState() ~= Enum.HumanoidStateType.Climbing and not self.Path.Idle then
-				local ORIGIN = hrp.Position + hrp.CFrame.LookVector * (hrp.Size.Z / 2)
-				local DIRECTION = hrp.CFrame.LookVector * 0.1
-				
-				--//Raycast parameters
-				local RAYCAST_PARAMS = RaycastParams.new()
-				RAYCAST_PARAMS.FilterDescendantsInstances = {character}
-				RAYCAST_PARAMS.FilterType = Enum.RaycastFilterType.Exclude
-				
-				RAYCAST_PARAMS.RespectCanCollide = true
-				RAYCAST_PARAMS.IgnoreWater = true
-				
-				local RAYCAST = workspace:Raycast(ORIGIN, DIRECTION, RAYCAST_PARAMS)
-				
-				if RAYCAST then
-					--//Checking if there is an obstacle
-					local OBSTACLE = RAYCAST.Instance
-					if OBSTACLE then
-						--//Checking if obstacle isn't a character
-						if not OBSTACLE:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
-							if OBSTACLE.ClassName ~= "TrussPart" and OBSTACLE.Transparency <= 0.9 then
-								local sides = {
-									front = OBSTACLE.CFrame.LookVector * (OBSTACLE.Size.Z / 2)+OBSTACLE.Position,
-									back = -OBSTACLE.CFrame.LookVector * (OBSTACLE.Size.Z / 2)+OBSTACLE.Position,
-									right = OBSTACLE.CFrame.RightVector * (OBSTACLE.Size.X / 2)+OBSTACLE.Position,
-									left = -OBSTACLE.CFrame.RightVector * (OBSTACLE.Size.X / 2)+OBSTACLE.Position,
-									up = OBSTACLE.CFrame.UpVector * (OBSTACLE.Size.Y / 2)+OBSTACLE.Position,
-									down = -OBSTACLE.CFrame.UpVector * (OBSTACLE.Size.Y / 2)+OBSTACLE.Position,
-								}
-
-								local highestSurface = nil
-								local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
-
-								for side, position in pairs(sides) do
-									if position.Y > highestY then
-										highestY = position.Y
-										highestSurface = side
-									end
-								end
-
-								if (humanoid.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - hrp.Position.Y) then
-									humanoid.Jump = true
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end)()
-
 	return self
 end
 
@@ -195,11 +136,70 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 
 	-- Local function: control walking behavior and handle reached waypoint
 	local function walk()
+		local function JUMP_HANDLER()
+			-- Using a moderate delay reduces the frequency of heavy collision queries
+			while RunService.Heartbeat:Wait(1) do
+				if HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing and not self.Path.Idle then
+					local ORIGIN = HRP.Position + HRP.CFrame.LookVector * (HRP.Size.Z / 2)
+					local DIRECTION = HRP.CFrame.LookVector * 0.1
+
+					--//Raycast parameters
+					local RAYCAST_PARAMS = RaycastParams.new()
+					RAYCAST_PARAMS.FilterDescendantsInstances = {character}
+					RAYCAST_PARAMS.FilterType = Enum.RaycastFilterType.Exclude
+
+					RAYCAST_PARAMS.RespectCanCollide = true
+					RAYCAST_PARAMS.IgnoreWater = true
+
+					local RAYCAST = workspace:Raycast(ORIGIN, DIRECTION, RAYCAST_PARAMS)
+
+					if RAYCAST then
+						--//Checking if there is an obstacle
+						local OBSTACLE = RAYCAST.Instance
+						if OBSTACLE then
+							--//Checking if obstacle isn't a character
+							if not OBSTACLE:FindFirstAncestorWhichIsA('Model'):FindFirstChild("Humanoid") then
+								if OBSTACLE.ClassName ~= "TrussPart" and OBSTACLE.Transparency <= 0.9 then
+									local sides = {
+										front = OBSTACLE.CFrame.LookVector * (OBSTACLE.Size.Z / 2)+OBSTACLE.Position,
+										back = -OBSTACLE.CFrame.LookVector * (OBSTACLE.Size.Z / 2)+OBSTACLE.Position,
+										right = OBSTACLE.CFrame.RightVector * (OBSTACLE.Size.X / 2)+OBSTACLE.Position,
+										left = -OBSTACLE.CFrame.RightVector * (OBSTACLE.Size.X / 2)+OBSTACLE.Position,
+										up = OBSTACLE.CFrame.UpVector * (OBSTACLE.Size.Y / 2)+OBSTACLE.Position,
+										down = -OBSTACLE.CFrame.UpVector * (OBSTACLE.Size.Y / 2)+OBSTACLE.Position,
+									}
+
+									local highestSurface = nil
+									local highestY = -math.huge  -- Start with a very low value to ensure any surface is higher
+
+									for side, position in pairs(sides) do
+										if position.Y > highestY then
+											highestY = position.Y
+											highestSurface = side
+										end
+									end
+
+									if (HUMANOID.JumpPower^2 / (2*workspace.Gravity)) >= (highestY - HRP.Position.Y) then
+										HUMANOID.Jump = true
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		-- Creating new jump thread
+		local JUMP_THREAD = coroutine.create(JUMP_HANDLER)
+		coroutine.resume(JUMP_THREAD)
+		
 		local function reached()
 			FINISHED = FINISHED + 1
 			local reachedWP = pathWaypoints[CURRENT_INDEX]
 			findNextIndex()
 			clearConnections(self.connections)
+			coroutine.close(JUMP_THREAD)
 
 			-- Handle orientation and animations if an Attachment exists
 			local attach = reachedWP:FindFirstChildWhichIsA("Attachment")

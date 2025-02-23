@@ -73,6 +73,7 @@ end
 -- Main Agent Methods
 
 function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
+	self.Thread = coroutine.create(function()
 	-- Character and Animation references
 	local CHARACTER = self.Character
 	local HRP = CHARACTER.HumanoidRootPart
@@ -131,7 +132,7 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	local function walk()
 		--//Cleaning connections
 		clearConnections(self.connections)
-		
+
 		local function reached()
 			FINISHED = FINISHED + 1
 			local reachedWP = pathWaypoints[CURRENT_INDEX]
@@ -276,6 +277,9 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 	end
 
 	walk()
+	end)
+	
+	coroutine.resume(self.Thread)
 end
 
 return agent

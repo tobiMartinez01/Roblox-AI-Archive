@@ -80,14 +80,14 @@ local DEBOUNCE = 0.1 --Preventing fling
 
 --//Highlighting carriable objects
 local function HIGHLIGHT()
-	UserInputService.MouseIcon = "rbxassetid://SystemCursors/OpenHand"
+	UserInputService.MouseIcon = "rbxassetid://382763043"
 	SELECTION.Adornee = CARRY_OBJECT
 	LAST_CARRY_OBJECT = CARRY_OBJECT
 end
 
 --//Un-highlight
 local function UN_HIGHLIGHT()
-	UserInputService.MouseIcon = "rbxassetid://SystemCursors/Arrow"
+	UserInputService.MouseIcon = "rbxassetid://6001676828"
 	SELECTION.Adornee = nil
 	LAST_CARRY_OBJECT = nil
 end
@@ -138,7 +138,10 @@ coroutine.wrap(function()
 	end
 end)()
 
---Input start
+--//Set mouse icon
+UserInputService.MouseIcon = "rbxassetid://6001676828"
+
+--//Input start
 UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 	--Not receiving inputs if the player is chatting
 	if CHATTING then

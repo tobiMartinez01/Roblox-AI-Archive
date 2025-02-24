@@ -1,0 +1,27 @@
+-- This would be in a local script in ReplicatedFirst. 
+-- We would do this because it's the very first service that loads.
+-- This is why, for making loading screens, they would always use ReplicatedFirst.
+-- So that's also what can help you load it faster.
+
+local ContentProvider = game:GetService("ContentProvider")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+
+local startTime = os.time()
+
+local ASSETS = {
+	"rbxassetid://382763043",
+	"rbxassetid://6001676828"
+}
+
+for i, asset in pairs(ReplicatedFirst:GetDescendants()) do
+	if asset:IsA("Animation") or asset:IsA("Sound") then
+		table.insert(ASSETS, asset)
+	end
+end
+
+ContentProvider:PreloadAsync(ASSETS, function(asset)
+	print('Loaded in ' .. tostring(asset))
+end)
+
+local deltaTime = os.time() - startTime
+print('It took ' .. deltaTime .. ' seconds to load all animations!')

@@ -187,9 +187,11 @@ function agent:Run(waypoints, UPPER_PATH, SUB_PATH)
 				end
 			end)
 
+			coroutine.resume(JUMP_THREAD)
+
 			local function reached()
 				coroutine.close(JUMP_THREAD)
-				
+
 				FINISHED = FINISHED + 1
 				local reachedWP = pathWaypoints[CURRENT_INDEX]
 				findNextIndex()

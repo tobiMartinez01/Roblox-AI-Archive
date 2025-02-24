@@ -112,15 +112,15 @@ end
 --Selection handler
 MOUSE.Move:Connect(function()
 	local TARGET = MOUSE.Target
-	local MOUSE_POS = MOUSE.Hit.Position
-	
-	local DISTANCE = (MOUSE_POS - CURRENT_CAM.CFrame.Position).Magnitude
 
 	if TARGET and not CARRYING and DISTANCE <= MIN_DISTANCE then
 		--//If model is carriable
 		CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
 		if CARRY_OBJECT then
-			if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+			--//Checking distance
+			local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
+			
+			if CARRY_OBJECT ~= LAST_CARRY_OBJECT and DISTANCE <= MIN_DISTANCE then
 				HIGHLIGHT()
 			end
 			

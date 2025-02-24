@@ -110,31 +110,33 @@ local function IS_BEING_CARRIED(obj)
 end
 
 --Selection handler
-RunService.RenderStepped:Connect(function()
-	local TARGET = MOUSE.Target
+coroutine.wrap(function()
+	while RunService.RenderStepped:Wait() do
+		local TARGET = MOUSE.Target
 
-	if TARGET and not CARRYING then
-		--//If model is carriable
-		CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
-		if CARRY_OBJECT then
-			--//Checking distance
-			local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
+		if TARGET and not CARRYING then
+			--//If model is carriable
+			CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
+			if CARRY_OBJECT then
+				--//Checking distance
+				local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
 
-			if DISTANCE <= MIN_DISTANCE then
-				if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
-					HIGHLIGHT()
+				if DISTANCE <= MIN_DISTANCE then
+					if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+						HIGHLIGHT()
+					end
+
+					continue
 				end
-
-				return
 			end
 		end
-	end
 
-	--//Un-assigning if fails
-	if SELECTION.Adornee ~= nil then
-		UN_HIGHLIGHT()
+		--//Un-assigning if fails
+		if SELECTION.Adornee ~= nil then
+			UN_HIGHLIGHT()
+		end
 	end
-end)
+end)()
 
 --Input start
 UserInputService.InputBegan:Connect(function(INPUT, CHATTING)

@@ -250,4 +250,3 @@ UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
 		ROTATING = false
 	end
 end)
-

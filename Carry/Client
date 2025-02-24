@@ -124,9 +124,9 @@ MOUSE.Move:Connect(function()
 				if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
 					HIGHLIGHT()
 				end
+				
+				return
 			end
-
-			return
 		end
 	end
 	

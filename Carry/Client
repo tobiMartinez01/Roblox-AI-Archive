@@ -1,32 +1,98 @@
---Client
-local self = script.Parent
-local HIGHLIGHT = script.Selection
+--//CLIENT//--
 
-local events = game.ReplicatedStorage.Events
-local carry_event = events.Carry
+--//Settings
+local MIN_DISTANCE = 6 --Pick up
+local MAX_DISTANCE = 10 --The furthest can object be away
+local FPS_CAP = 30
 
-local UIS = game:GetService("UserInputService")
-local localPlayer = game.Players.LocalPlayer
-local CurrentCamera = workspace.CurrentCamera
-local mouse = localPlayer:GetMouse()
-local RunService = game:GetService("RunService")
-local Controls = require(localPlayer.PlayerScripts:WaitForChild("PlayerModule")):GetControls()
+--//Services
+local RunService = game["Run Service"]
+local ReplicatedStorage = game.ReplicatedStorage
+local ContextActionService = game.ContextActionService
+local UserInputService = game.UserInputService
+local Players = game.Players
 
-local Object
-local Object_
+local EVENTS = ReplicatedStorage.Events
 
-local AlignPosition
-local AlignOrientation
-local CarryPoint
-local AlignPosition
+--//References
+local self = script
+local SELECTION = self.Selection
 
-local IsCarrying = false
-local IsRotating = false
+local CARRY_EVENT = EVENTS.Carry
 
-local pickupDistance = 6
-local holdDistance = 6
+local ALIGN_POS = self.IsCarrying
+local ALIGN_ORIENTATION = self.IsCarrying_Orientation
 
-local function HasAlignPosition(obj)
+--//Player references
+local LOCAL_PLAYER = Players.LocalPlayer
+local PLAYER_SCRIPTS = LOCAL_PLAYER.PlayerScripts
+local CURRENT_CAM = workspace.CurrentCamera
+local MOUSE = LOCAL_PLAYER:GetMouse()
+
+--//Misc references
+local CONTROLS = require(PLAYER_SCRIPTS:WaitForChild("PlayerModule")):GetControls()
+local KEYCODE = Enum.KeyCode
+
+--//Functions
+local function findCarriable(PART)
+	local CURRENT = PART
+
+	if PART:FindFirstChild("CarryPoint") then
+		while CURRENT do
+			if CURRENT:IsA("Model") then
+				if CURRENT.PrimaryPart == PART then
+					return CURRENT, CURRENT.PrimaryPart
+				end
+			end
+
+			-- Move up using CURRENT's ancestor, not PART's
+			CURRENT = CURRENT:FindFirstAncestorWhichIsA("Model")
+		end
+
+		return PART, PART
+	else
+		while CURRENT do
+			if CURRENT:IsA("Model") then
+				if CURRENT.PrimaryPart and CURRENT.PrimaryPart:FindFirstChild("CarryPoint") then
+					return CURRENT, CURRENT.PrimaryPart 
+				end
+			end
+
+			-- Move up using CURRENT's ancestor
+			CURRENT = CURRENT:FindFirstAncestorWhichIsA("Model")
+		end
+	end
+
+	return nil, nil
+end
+
+--//Dragging references
+local CARRY_OBJECT --> Model :: Part
+local CARRY_PART --> CARRY_OBJECT --> PrimaryPart or itself
+local CARRYING = false
+local ROTATING = false
+
+local LAST_CARRY_OBJECT
+
+--//Timing references
+local LAST_TICK = tick()
+local DEBOUNCE = 0.1 --Preventing fling
+
+--//Highlighting carriable objects
+local function HIGHLIGHT()
+	UserInputService.MouseIcon = "rbxassetid://SystemCursors/OpenHand"
+	SELECTION.Adornee = CARRY_OBJECT
+	LAST_CARRY_OBJECT = CARRY_OBJECT
+end
+
+--//Un-highlight
+local function UN_HIGHLIGHT()
+	UserInputService.MouseIcon = "rbxassetid://SystemCursors/Arrow"
+	SELECTION.Adornee = nil
+	LAST_CARRY_OBJECT = nil
+end
+
+local function IS_BEING_CARRIED(obj)
 	if obj:IsA("Model") then
 		local primarypart = obj.PrimaryPart
 		if primarypart:FindFirstChild("IsCarrying") then
@@ -43,213 +109,145 @@ local function HasAlignPosition(obj)
 	end
 end
 
-local function findModelThroughPrimaryPart(primarypart)
-	local current = primarypart
-	while current do
-		if current:IsA("Model") then
-			if current.PrimaryPart == primarypart then
-				return current
-			end
-		end
-		current = current.Parent
-	end
-	return nil
-end
+--Selection handler
+MOUSE.Move:Connect(function()
+	local TARGET = MOUSE.Target
+	local MOUSE_POS = MOUSE.Hit.Position
+	
+	local DISTANCE = (MOUSE_POS - CURRENT_CAM.CFrame.Position).Magnitude
 
-local function findCarriableAncestor(target)
-	local current = target
-	while current do
-		if current:IsA("BasePart") then
-			if current:FindFirstChild("CarryPoint") then
-				if current:FindFirstChild("CarryPoint"):IsA("Attachment") then
-					CarryPoint = current:FindFirstChild("CarryPoint")
-					return current
-				else
-					warn("CarryPoint must be an Attachment!")
-					return nil
-				end
-			end
-		elseif current:IsA("Model") then
-			local primarypart = current.PrimaryPart
-			if primarypart then
-				if primarypart:FindFirstChild("CarryPoint") then
-					if primarypart:FindFirstChild("CarryPoint"):IsA("Attachment") then
-						CarryPoint = primarypart:FindFirstChild("CarryPoint")
-						return current
-					else
-						warn("CarryPoint must be an Attachment!")
-						return nil
-					end
-				end
-			end
-		end
-		current = current.Parent
-	end
-	return nil
-end
-
-local function Carrying(Object)
-	if Object:IsA("Model") then
-		if Object.PrimaryPart.CollisionGroup == "SelfUncollide" then
-			return true
-		else
-			return false
-		end
-	else
-		if Object.CollisionGroup == "SelfUncollide" then
-			return true
-		else
-			return false
-		end
-	end
-end
-
-local last_tick = tick()
-local debounce = 0.1
-
---//Mouse movement
-mouse.Move:Connect(function()
-	if not IsCarrying  then
-		local Target = mouse.Target
-
-		--//Finding if model/part is carriable
-		Object = findCarriableAncestor(Target)
-		
-		if Object then
-			--//Highlight
-			local MODEL = findModelThroughPrimaryPart(Target)
-			if MODEL then
-				HIGHLIGHT.Adornee = MODEL
-			else
-				HIGHLIGHT.Adornee = Object
-			end
-			
-			
-			--//Assigning
-			if Object:IsA("Model") then
-				Object_ = Object.PrimaryPart
-			else
-				Object_ = Object
+	if TARGET and not CARRYING and DISTANCE <= MIN_DISTANCE then
+		--//If model is carriable
+		CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
+		if CARRY_OBJECT then
+			if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+				HIGHLIGHT()
 			end
 			
 			return
 		end
 	end
 	
-	--//If fails
-	HIGHLIGHT.Adornee = nil
+	--//Un-assigning if fails
+	if SELECTION.Adornee ~= nil then
+		UN_HIGHLIGHT()
+	end
 end)
 
-UIS.InputBegan:Connect(function(input, isChatting)
-	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and not IsCarrying then
-		if Object_ then
-			--//Checking if player is close enough
-			if (Object_.Position - CurrentCamera.CFrame.Position).Magnitude <= pickupDistance and Carrying(Object) == false then
-				IsCarrying = true
-				last_tick = tick()
-
-				local initialCameraCFrame = CurrentCamera.CFrame
-				local initialOrientation
-
-				--//Getting object orientation
-				if Object:IsA("Model") then
-					initialOrientation = Object.PrimaryPart.CFrame
-				else
-					initialOrientation = Object.CFrame
-				end
-
-				--//Fire event
-				carry_event:InvokeServer(true, Object_)
-
-				--//Carry handling
-				if not HasAlignPosition(Object) then
-					AlignPosition = Instance.new("AlignPosition", Object_)
-					AlignPosition.Name = "IsCarrying"
-					AlignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-					AlignPosition.Attachment0 = Object_:FindFirstChild("CarryPoint")
-					AlignPosition.MaxForce = 10^5
-					AlignPosition.MaxVelocity = math.huge
-					AlignPosition.Responsiveness = 100
-
-					AlignOrientation = Instance.new("AlignOrientation", Object_)
-					AlignOrientation.Name = "IsCarrying_Orientation"
-					AlignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-					AlignOrientation.Attachment0 = Object_:FindFirstChild("CarryPoint")
-					AlignOrientation.MaxTorque = 10^5
-					AlignOrientation.MaxAngularVelocity = math.huge
-					AlignOrientation.Responsiveness = 100
-				else
-					AlignPosition = Object_:FindFirstChild("IsCarrying")
-					AlignOrientation = Object_:FindFirstChild("IsCarrying_Orientation")
-				end
-
-				AlignPosition.Position = Object_.CFrame.Position
-				AlignOrientation.CFrame = Object_.CFrame
-
-				--//Loop
-				local drag; drag = RunService.RenderStepped:Connect(function(dt)
-					if IsCarrying then
-						local fpscap = dt*30
-						local delta_X = 0
-						local delta_Y = 0
-						local camCFrame = CurrentCamera.CFrame
-						if IsRotating == true then
-							if UIS:IsKeyDown(Enum.KeyCode.W) then
-								delta_X=10
-							end
-							if UIS:IsKeyDown(Enum.KeyCode.S) then
-								delta_X=-10
-							end
-							if UIS:IsKeyDown(Enum.KeyCode.A) then
-								delta_Y=10
-							end
-							if UIS:IsKeyDown(Enum.KeyCode.D) then
-								delta_Y=-10
-							end
-						end
-
-						initialCameraCFrame = initialCameraCFrame * CFrame.Angles(math.rad(delta_X*fpscap), math.rad(delta_Y*fpscap), 0)
-
-						AlignPosition.Position = camCFrame.Position + camCFrame.LookVector * holdDistance
-						AlignOrientation.CFrame = camCFrame * initialCameraCFrame:ToObjectSpace(initialOrientation)
-					else
-						drag:Disconnect()
-					end
-				end)
-
-				return
+--Input start
+UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
+	--Not receiving inputs if the player is chatting
+	if CHATTING then
+		return
+	end
+	
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 and not CARRYING and CARRY_OBJECT and CARRY_PART then
+		--//Calculating if the player is close enough
+		local CAM_POS = CURRENT_CAM.CFrame.Position
+		local CARRY_PART_POS = CARRY_PART.Position
+		
+		local DISTANCE = (CAM_POS - CARRY_PART_POS).Magnitude
+		
+		if DISTANCE <= MIN_DISTANCE then
+			--//Debounce
+			CARRYING = true
+			LAST_TICK = tick()
+			
+			local INITIAL_CAM_CFRAME = CURRENT_CAM.CFrame
+			local INITIAL_PART_CFRAME = CARRY_PART.CFrame
+			
+			--//Fire event
+			CARRY_EVENT:InvokeServer(true, CARRY_PART)
+			
+			--//Check if I need to apply force
+			if not IS_BEING_CARRIED(CARRY_OBJECT) then
+				--//Applying force
+				ALIGN_POS.Parent = CARRY_PART
+				ALIGN_ORIENTATION.Parent = CARRY_PART
+				
+				ALIGN_POS.Position = INITIAL_PART_CFRAME.Position
+				ALIGN_ORIENTATION.CFrame = INITIAL_PART_CFRAME
+				
+				ALIGN_POS.Attachment0 = CARRY_PART.CarryPoint
+				ALIGN_ORIENTATION.Attachment0 = CARRY_PART.CarryPoint
 			end
+			
+			--//Main handler
+			local NEW_THREAD
+			NEW_THREAD = RunService.RenderStepped:Connect(function(dt)
+				local NEW_CAM_POS = CURRENT_CAM.CFrame.Position
+				local NEW_CARRY_PART_POS = CARRY_PART.Position
 
-			Object = nil
-			Object_ = nil
+				local NEW_DISTANCE = (NEW_CAM_POS - NEW_CARRY_PART_POS).Magnitude
+				
+				if CARRYING and NEW_DISTANCE <= MAX_DISTANCE then
+					local SCALED_FPS = dt*FPS_CAP
+					
+					local X_DELTA = 0
+					local Y_DELTA = 0
+					
+					local CURRENT_CAM_CFRAME = CURRENT_CAM.CFrame
+					
+					--//Rotate handler
+					if ROTATING then
+						if UserInputService:IsKeyDown(KEYCODE.W) then
+							X_DELTA = 10
+						end
+						if UserInputService:IsKeyDown(KEYCODE.S) then
+							X_DELTA = -10
+						end
+						if UserInputService:IsKeyDown(KEYCODE.A) then
+							Y_DELTA = 10
+						end
+						if UserInputService:IsKeyDown(KEYCODE.D) then
+							Y_DELTA = -10
+						end
+					end
+					
+					INITIAL_CAM_CFRAME = INITIAL_CAM_CFRAME * CFrame.Angles(math.rad(X_DELTA * SCALED_FPS), math.rad(Y_DELTA * SCALED_FPS), 0)
+					
+					ALIGN_POS.Position = CURRENT_CAM_CFRAME.Position + CURRENT_CAM_CFRAME.LookVector * MIN_DISTANCE
+					ALIGN_ORIENTATION.CFrame = CURRENT_CAM_CFRAME * INITIAL_CAM_CFRAME:ToObjectSpace(INITIAL_PART_CFRAME)
+				else
+					NEW_THREAD:Disconnect()
+				end
+			end)
 		end
 	end
-
-	if input.UserInputType == Enum.UserInputType.MouseButton2 and IsCarrying then
-		Controls:Disable()
-		IsRotating = true
+	
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 and CARRYING then
+		CONTROLS:Disable()
+		ROTATING = true
 	end
 end)
 
-UIS.InputEnded:Connect(function(input, isChatting)
-	if isChatting then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 and IsCarrying then 
+--//Input ended
+UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
+	--Not receiving inputs if the player is chatting
+	if CHATTING then
+		return
+	end
+	
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 and CARRYING then
+		--//Debounce
 		repeat
 			task.wait()
-		until tick() - last_tick >= debounce
-		Controls:Enable()
-		IsCarrying = false
-		IsRotating = false
-		AlignPosition:Destroy()
-		AlignOrientation:Destroy()
-		carry_event:InvokeServer(false, Object_)
-		Object = nil
-		Object_ = nil
+		until tick() - LAST_TICK >= DEBOUNCE
+		
+		CONTROLS:Enable()
+		ROTATING = false
+		
+		CARRYING = false
+		
+		ALIGN_POS.Parent = self
+		ALIGN_ORIENTATION.Parent = self
+		
+		CARRY_EVENT:InvokeServer(false, CARRY_PART)
 	end
-
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		Controls:Enable()
-		IsRotating = false
+	
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 then
+		CONTROLS:Enable()
+		ROTATING = false
 	end
 end)
+

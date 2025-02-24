@@ -113,7 +113,7 @@ end
 MOUSE.Move:Connect(function()
 	local TARGET = MOUSE.Target
 
-	if TARGET and not CARRYING and DISTANCE <= MIN_DISTANCE then
+	if TARGET and not CARRYING then
 		--//If model is carriable
 		CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
 		if CARRY_OBJECT then

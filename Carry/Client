@@ -11,12 +11,14 @@ local ReplicatedStorage = game.ReplicatedStorage
 local ContextActionService = game.ContextActionService
 local UserInputService = game.UserInputService
 local Players = game.Players
+local CURRENT_CAM = workspace.CurrentCamera
 
 local EVENTS = ReplicatedStorage.Events
 
 --//References
 local self = script
-local SELECTION = self.Selection
+local SELECTION = self.Selection:Clone()
+SELECTION.Parent = CURRENT_CAM
 
 local CARRY_EVENT = EVENTS.Carry
 
@@ -26,7 +28,6 @@ local ALIGN_ORIENTATION = self.IsCarrying_Orientation
 --//Player references
 local LOCAL_PLAYER = Players.LocalPlayer
 local PLAYER_SCRIPTS = LOCAL_PLAYER.PlayerScripts
-local CURRENT_CAM = workspace.CurrentCamera
 local MOUSE = LOCAL_PLAYER:GetMouse()
 
 --//Misc references

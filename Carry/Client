@@ -110,7 +110,7 @@ local function IS_BEING_CARRIED(obj)
 end
 
 --Selection handler
-MOUSE.Move:Connect(function()
+RunService.RenderStepped:Connect(function()
 	local TARGET = MOUSE.Target
 
 	if TARGET and not CARRYING then
@@ -119,17 +119,17 @@ MOUSE.Move:Connect(function()
 		if CARRY_OBJECT then
 			--//Checking distance
 			local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
-			
+
 			if DISTANCE <= MIN_DISTANCE then
 				if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
 					HIGHLIGHT()
 				end
-				
+
 				return
 			end
 		end
 	end
-	
+
 	--//Un-assigning if fails
 	if SELECTION.Adornee ~= nil then
 		UN_HIGHLIGHT()
@@ -142,38 +142,38 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 	if CHATTING then
 		return
 	end
-	
+
 	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 and not CARRYING and CARRY_OBJECT and CARRY_PART then
 		--//Calculating if the player is close enough
 		local CAM_POS = CURRENT_CAM.CFrame.Position
 		local CARRY_PART_POS = CARRY_PART.Position
-		
+
 		local DISTANCE = (CAM_POS - CARRY_PART_POS).Magnitude
-		
+
 		if DISTANCE <= MIN_DISTANCE then
 			--//Debounce
 			CARRYING = true
 			LAST_TICK = tick()
-			
+
 			local INITIAL_CAM_CFRAME = CURRENT_CAM.CFrame
 			local INITIAL_PART_CFRAME = CARRY_PART.CFrame
-			
+
 			--//Fire event
 			CARRY_EVENT:InvokeServer(true, CARRY_PART)
-			
+
 			--//Check if I need to apply force
 			if not IS_BEING_CARRIED(CARRY_OBJECT) then
 				--//Applying force
 				ALIGN_POS.Parent = CARRY_PART
 				ALIGN_ORIENTATION.Parent = CARRY_PART
-				
+
 				ALIGN_POS.Position = INITIAL_PART_CFRAME.Position
 				ALIGN_ORIENTATION.CFrame = INITIAL_PART_CFRAME
-				
+
 				ALIGN_POS.Attachment0 = CARRY_PART.CarryPoint
 				ALIGN_ORIENTATION.Attachment0 = CARRY_PART.CarryPoint
 			end
-			
+
 			--//Main handler
 			local NEW_THREAD
 			NEW_THREAD = RunService.RenderStepped:Connect(function(dt)
@@ -181,15 +181,15 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 				local NEW_CARRY_PART_POS = CARRY_PART.Position
 
 				local NEW_DISTANCE = (NEW_CAM_POS - NEW_CARRY_PART_POS).Magnitude
-				
+
 				if CARRYING and NEW_DISTANCE <= MAX_DISTANCE then
 					local SCALED_FPS = dt*FPS_CAP
-					
+
 					local X_DELTA = 0
 					local Y_DELTA = 0
-					
+
 					local CURRENT_CAM_CFRAME = CURRENT_CAM.CFrame
-					
+
 					--//Rotate handler
 					if ROTATING then
 						if UserInputService:IsKeyDown(KEYCODE.W) then
@@ -205,9 +205,9 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 							Y_DELTA = -10
 						end
 					end
-					
+
 					INITIAL_CAM_CFRAME = INITIAL_CAM_CFRAME * CFrame.Angles(math.rad(X_DELTA * SCALED_FPS), math.rad(Y_DELTA * SCALED_FPS), 0)
-					
+
 					ALIGN_POS.Position = CURRENT_CAM_CFRAME.Position + CURRENT_CAM_CFRAME.LookVector * MIN_DISTANCE
 					ALIGN_ORIENTATION.CFrame = CURRENT_CAM_CFRAME * INITIAL_CAM_CFRAME:ToObjectSpace(INITIAL_PART_CFRAME)
 				else
@@ -216,7 +216,7 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 			end)
 		end
 	end
-	
+
 	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 and CARRYING then
 		CONTROLS:Disable()
 		ROTATING = true
@@ -229,27 +229,26 @@ UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
 	if CHATTING then
 		return
 	end
-	
+
 	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 and CARRYING then
 		--//Debounce
 		repeat
 			task.wait()
 		until tick() - LAST_TICK >= DEBOUNCE
-		
+
 		CONTROLS:Enable()
 		ROTATING = false
-		
+
 		CARRYING = false
-		
+
 		ALIGN_POS.Parent = self
 		ALIGN_ORIENTATION.Parent = self
-		
+
 		CARRY_EVENT:InvokeServer(false, CARRY_PART)
 	end
-	
+
 	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 then
 		CONTROLS:Enable()
 		ROTATING = false
 	end
 end)
-

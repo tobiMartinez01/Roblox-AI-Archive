@@ -120,10 +120,12 @@ MOUSE.Move:Connect(function()
 			--//Checking distance
 			local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
 			
-			if CARRY_OBJECT ~= LAST_CARRY_OBJECT and DISTANCE <= MIN_DISTANCE then
-				HIGHLIGHT()
+			if DISTANCE <= MIN_DISTANCE then
+				if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+					HIGHLIGHT()
+				end
 			end
-			
+
 			return
 		end
 	end
@@ -250,3 +252,4 @@ UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
 		ROTATING = false
 	end
 end)
+

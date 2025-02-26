@@ -65,10 +65,10 @@ function agent.new(character, costs)
 	self.Path = NoobPath.Humanoid(character, pathParams)
 	self.Path.Visualize = true
 	self.Path.Timeout = true
-	self.Path.Speed = agent.Humanoid.Walkspeed
+	self.Path.Speed = character.Humanoid.Walkspeed
 	
-	agent.Humanoid:GetPropertyChangedSignal("Walkspeed"):Connect(function()
-		self.Path.Speed = agent.Humanoid.Walkspeed
+	character.Humanoid:GetPropertyChangedSignal("Walkspeed"):Connect(function()
+		self.Path.Speed = character.Humanoid.Walkspeed
 	end)
 	
 	return self

@@ -63,7 +63,14 @@ function agent.new(character, costs)
             SupportPartialPath = true
         }
     }
-    self.Path = NoobPath.Humanoid(character, pathParams)
+	self.Path = NoobPath.Humanoid(character, pathParams)
+	self.Path.Timeout = true
+	self.Path.Partial = true
+	self.Path.Speed = character.Humanoid.WalkSpeed
+	
+	character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
+		self.Path.Speed = character.Humanoid.WalkSpeed
+	end)
     --self.Path.Visualize = true -- Uncomment to visualize paths
 
     return self

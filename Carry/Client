@@ -203,10 +203,10 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 			--//Main handler
 			local NEW_THREAD
 			NEW_THREAD = RunService.RenderStepped:Connect(function(dt)
-				local NEW_CAM_POS = CURRENT_CAM.CFrame.Position
-				local NEW_CARRY_PART_POS = CARRY_PART.Position
-
 				if CARRY_PART then
+					local NEW_CAM_POS = CURRENT_CAM.CFrame.Position
+					local NEW_CARRY_PART_POS = CARRY_PART.Position
+					
 					local NEW_DISTANCE = (NEW_CAM_POS - NEW_CARRY_PART_POS).Magnitude
 
 					if CARRYING and NEW_DISTANCE <= MAX_DISTANCE then

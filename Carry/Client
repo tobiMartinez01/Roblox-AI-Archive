@@ -79,16 +79,21 @@ local LAST_CARRY_OBJECT
 local LAST_TICK = tick()
 local DEBOUNCE = 0.1 --Preventing fling
 
+--//Mouse icon change
+local function changeMouseIcon(id)
+	if MOUSE.Icon ~= id then
+		MOUSE.Icon = id
+	end
+end
+
 --//Highlighting carriable objects
 local function HIGHLIGHT()
-	UserInputService.MouseIcon = "rbxassetid://382763043"
 	SELECTION.Adornee = CARRY_OBJECT
 	LAST_CARRY_OBJECT = CARRY_OBJECT
 end
 
 --//Un-highlight
 local function UN_HIGHLIGHT()
-	UserInputService.MouseIcon = "rbxassetid://6001676828"
 	SELECTION.Adornee = nil
 	LAST_CARRY_OBJECT = nil
 end
@@ -124,19 +129,32 @@ coroutine.wrap(function()
 					local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
 
 					if DISTANCE <= MIN_DISTANCE then
+						--//Highlight
 						if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+							--//This could prevent unnecessary value changes
 							HIGHLIGHT()
 						end
-
+						
+						--//Change mouse icon to open hand
+						changeMouseIcon("rbxassetid://382763043")
+						
+						--//Is success
 						continue
 					end
 				end
 			end
 
 			--//Un-assigning if fails
-			if SELECTION.Adornee ~= nil then
+			if SELECTION.Adornee then
+				--//Un-highlight
 				UN_HIGHLIGHT()
+				
+				--//Change mouse icon to default
+				changeMouseIcon("rbxassetid://6001676828")
 			end
+		else
+			--//Change mouse icon to dragging hand
+			changeMouseIcon("rbxassetid://382762994")
 		end
 	end
 end)()
@@ -162,9 +180,6 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 			--//Debounce
 			CARRYING = true
 			LAST_TICK = tick()
-			
-			--//Set mouse icon
-			UserInputService.MouseIcon = "rbxassetid://382762994"
 
 			local INITIAL_CAM_CFRAME = CURRENT_CAM.CFrame
 			local INITIAL_PART_CFRAME = CARRY_PART.CFrame

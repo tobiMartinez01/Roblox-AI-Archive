@@ -58,19 +58,13 @@ function agent.new(character, costs)
 		AgentCanJump = true,
 		AgentCanClimb = true,
 		Costs = costs,
-		WaypointSpacing = 5,
+		WaypointSpacing = 8,
 		PathSettings = {
 			SupportPartialPath = true
 		}
 	}
 	self.Path = NoobPath.Humanoid(character, pathParams)
 	self.Path.Visualize = true
-	self.Path.Timeout = true
-	self.Path.Speed = character.Humanoid.WalkSpeed
-
-	character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-		self.Path.Speed = character.Humanoid.WalkSpeed
-	end)
 
 	return self
 end

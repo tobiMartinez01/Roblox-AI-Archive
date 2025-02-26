@@ -1,0 +1,218 @@
+-- Libraries
+local RunService = game["Run Service"]
+local Players = game.Players
+local tweenService = game.TweenService
+
+-- Functions
+local function setupCharacter(charModel)
+	for _, v in pairs(charModel:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.CollisionGroup = "SelfUncollide"
+		end
+	end
+end
+
+local function findModelThroughPrimaryPart(primarypart)
+	local current = primarypart
+	while current do
+		if current:IsA("Model") and current.PrimaryPart == primarypart then
+			return current
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
+-- Character Setup for Players
+for _, plr in ipairs(Players:GetPlayers()) do
+	if plr.Character then
+		setupCharacter(plr.Character)
+	end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function(char)
+		setupCharacter(char)
+	end)
+	if plr.Character then
+		setupCharacter(plr.Character)
+	end
+end)
+
+-- Workspace Setup: Collect Instances into Tables
+local pathfindingModifiers = {}
+local npcModels = {}
+local tvs = {}
+local dragDetectors = {}
+local drawers = {}
+local hinges = {}
+
+for _, instance in pairs(workspace:GetDescendants()) do
+	-- Check for Models
+	if instance:IsA("Model") then
+		-- NPC Models with Humanoid (optimized to check Models directly)
+		if instance:FindFirstChild("Humanoid") then
+			table.insert(npcModels, instance)
+		end
+		-- TVs
+		if instance.Name == "TV" and instance:FindFirstChild("PowerButton") and instance:FindFirstChild("ChannelButton") and 
+			instance:FindFirstChild("Screen") and instance:FindFirstChildWhichIsA("SurfaceGui", true) then
+			table.insert(tvs, instance)
+		end
+		-- Drawers
+		if instance.Name == "Drawer" and instance:FindFirstChild("Bottom") and instance:FindFirstChild("DragDetector") then
+			table.insert(drawers, instance)
+		end
+	end
+
+	-- Check for BaseParts
+	if instance:IsA("BasePart") then
+		-- Pathfinding Modifiers
+		if instance:FindFirstChild("PathfindingModifier") and instance.Color == Color3.fromRGB(196, 40, 28) then
+			table.insert(pathfindingModifiers, instance)
+		end
+	end
+
+	-- Check for DragDetectors
+	if instance:IsA("DragDetector") then
+		table.insert(dragDetectors, instance)
+	end
+
+	-- Check for HingeConstraints
+	if instance:IsA("HingeConstraint") then
+		if instance.Attachment0 and instance.Attachment1 then
+			table.insert(hinges, instance)
+		end
+	end
+end
+
+-- Process Collected Instances
+
+-- 1. Pathfinding Modifiers
+for _, part in ipairs(pathfindingModifiers) do
+	part.Transparency = 1
+	part.CanCollide = false
+	part.Anchored = true
+end
+
+-- 2. NPC Models
+for _, model in ipairs(npcModels) do
+	for _, bodypart in ipairs(model:GetDescendants()) do
+		if bodypart:IsA("BasePart") and bodypart.CollisionGroup ~= "SelfUncollide" then
+			bodypart.CollisionGroup = "SelfUncollide"
+		end
+	end
+end
+
+-- 3. TVs
+for _, tv in ipairs(tvs) do
+	local display = tv:FindFirstChildWhichIsA("SurfaceGui", true)
+	local powerButton = tv:FindFirstChild("PowerButton")
+	local channelButton = tv:FindFirstChild("ChannelButton")
+	local powerButtonClick = powerButton:FindFirstChildWhichIsA("ClickDetector")
+	local channelButtonClick = channelButton:FindFirstChildWhichIsA("ClickDetector")
+
+	local function powerButtonFunction()
+		if tv:GetAttribute("Powered") == true then
+			display.Enabled = not display.Enabled
+		end
+	end
+
+	powerButtonClick.MouseClick:Connect(powerButtonFunction)
+	tv:GetAttributeChangedSignal("Powered"):Connect(function()
+		if tv:GetAttribute("Powered") == false then
+			display.Enabled = false
+		end
+	end)
+end
+
+-- 4. Drag Detectors
+for _, dragDetector in ipairs(dragDetectors) do
+	dragDetector.PermissionPolicy = Enum.DragDetectorPermissionPolicy.Scriptable
+
+	dragDetector.DragStart:Connect(function()
+		dragDetector:SetAttribute("IsDragged", true)
+	end)
+
+	dragDetector.DragEnd:Connect(function()
+		dragDetector:SetAttribute("IsDragged", nil)
+	end)
+
+	dragDetector:SetPermissionPolicyFunction(function(plr, dragObject)
+		return dragDetector:GetAttribute("IsDragged") ~= true
+	end)
+end
+
+-- 5. Drawers
+for _, drawer in ipairs(drawers) do
+	local holdings = {}
+	local Bottom = drawer:FindFirstChild("Bottom")
+	local DragDetector = drawer:FindFirstChild("DragDetector")
+	local drawer_size = drawer:GetExtentsSize().Magnitude
+
+	DragDetector.DragStart:Connect(function()
+		local touchingparts = Bottom:GetTouchingParts()
+		for _, item in ipairs(touchingparts) do
+			if item:FindFirstAncestorWhichIsA("Model") ~= drawer then
+				local model = findModelThroughPrimaryPart(item)
+				local obj = model and model.PrimaryPart or item
+				local part_size = model and model:GetExtentsSize().Magnitude or item.Size.Magnitude
+
+				if not obj:FindFirstChild("Drawer_Weld") and part_size <= drawer_size then
+					local stayInPlace = obj.CFrame
+					local Drawer_Weld = Instance.new("WeldConstraint", obj)
+					Drawer_Weld.Name = "Drawer_Weld"
+					Drawer_Weld.Part0 = Bottom
+					Drawer_Weld.Part1 = obj
+					obj.CFrame = stayInPlace
+					table.insert(holdings, Drawer_Weld)
+				end
+			end
+		end
+	end)
+
+	DragDetector.DragEnd:Connect(function()
+		for _, weld in ipairs(holdings) do
+			weld:Destroy()
+		end
+		holdings = {}
+	end)
+end
+
+-- 6. Hinge Constraints
+for _, hinge in ipairs(hinges) do
+	local attachment1 = hinge.Attachment1
+	local weldedPart = attachment1:FindFirstAncestorWhichIsA("BasePart")
+	local originalCFrame = weldedPart.CFrame
+	local debounceThread
+
+	local function closeThread()
+		if debounceThread then
+			coroutine.yield(debounceThread)
+			coroutine.close(debounceThread)
+			debounceThread = nil
+		end
+	end
+
+	local function reset()
+		task.wait(3)
+		weldedPart.CFrame = originalCFrame
+		weldedPart:SetNetworkOwner(nil)
+		debounceThread = nil
+	end
+
+	weldedPart.Touched:Connect(function(hit)
+		local model = hit:FindFirstAncestorWhichIsA("Model")
+		if model and model:FindFirstChild("Humanoid") then
+			closeThread()
+			local player = Players:GetPlayerFromCharacter(model)
+			if player and weldedPart:GetNetworkOwner() ~= player then
+				weldedPart:SetNetworkOwner(player)
+			elseif model:FindFirstChild("Humanoid") then
+				weldedPart:SetNetworkOwner(nil)
+			end
+			debounceThread = coroutine.create(reset)
+			coroutine.resume(debounceThread)
+		end
+	end)
+end

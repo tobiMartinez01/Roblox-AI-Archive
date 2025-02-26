@@ -75,8 +75,9 @@ end
 function agent:Run(PATH_FOLDER)
 	self.Thread = coroutine.create(function()
 		local CHARACTER = self.Character
-		local HRP = self.HumanoidRootPart
-		local HUMANOID = self.Humanoid
+		local HRP = CHARACTER.HumanoidRootPart
+		local HUMANOID = CHARACTER.Humanoid
+		local ANIMATOR = HUMANOID.Animator
 		
 		local PATH = self.Path
 		
@@ -108,7 +109,32 @@ function agent:Run(PATH_FOLDER)
 					-- Yield
 					task.wait(self.Debounce or 0)
 
-					-- Run
+					-- [[ RUN ]]
+					
+					-- Unanchor to make them be able to move again
+					HRP.Anchored = false
+					
+					-- Fire event
+					self.events.Next:Fire(WAYPOINT)
+				
+					--Stopping animations
+					if self.INTERACTION then
+						self.INTERACTION:Stop()
+						self.INTERACTION = nil
+					end
+					
+					-- Handle exit animation from previous waypoint if available
+					if path[INDEX - 1] then
+						local LEAVE_ANIMATION = path[INDEX - 1]:FindFirstChild("Leave")
+						if LEAVE_ANIMATION and LEAVE_ANIMATION.Value then
+							local LEAVE_TRACK = ANIMATOR:LoadAnimation(LEAVE_ANIMATION.Value)
+							LEAVE_TRACK.Looped = false
+							LEAVE_TRACK.Priority = Enum.AnimationPriority.Action2
+							LEAVE_TRACK:Play()
+							LEAVE_TRACK.Stopped:Wait()
+						end
+					end
+
 					PATH:Run(WAYPOINT.Position)
 
 					-- Finished
@@ -120,6 +146,81 @@ function agent:Run(PATH_FOLDER)
 					
 					self.Debounce = WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = WAYPOINT:GetAttribute("Randomized") or false
+					
+					-- Animation
+					local ATTACHMENT = WAYPOINT:FindFirstChildWhichIsA("Attachment")
+					
+					if ATTACHMENT then
+						--[[ STARE FEATURE ]]
+						local ORIGIN = WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+						local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+						
+						-- Wait until the NPC is in an idle state
+						repeat 
+							RunService.Heartbeat:Wait()
+						until HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing 
+							and HUMANOID:GetState() ~= Enum.HumanoidStateType.Jumping 
+							and HUMANOID:GetState() ~= Enum.HumanoidStateType.Freefall 
+							and HUMANOID.FloorMaterial ~= Enum.Material.Air 
+							and HRP.Velocity.Magnitude < 0.01 
+							and PATH.Idle
+						
+						-- Anchor momentarily to avoid disturbance
+						HRP.Anchored = true
+						
+						-- Tween rotation toward target direction
+						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
+						lookTween:Play()
+						
+						--lookTween.Completed:Wait()
+						
+						-- Enter animation
+						local ENTER_ANIMATION = WAYPOINT:FindFirstChild("Enter")
+						local ENTER_TRACK
+						
+						if ENTER_ANIMATION and ENTER_ANIMATION.Value then
+							ENTER_TRACK = ANIMATOR:LoadAnimation(ENTER_ANIMATION.Value)
+							ENTER_TRACK.Looped = false
+							ENTER_TRACK.Priority = Enum.AnimationPriority.Action2
+							ENTER_TRACK:Play()
+						end
+						
+						-- Handle interact animations (choose one at random)
+						local INTERACT_AMIMS = {}
+						local INTERACT_AMIMATIONID
+						
+						for _, ANIMATION in pairs(WAYPOINT:GetChildren()) do
+							if ANIMATION:IsA("ObjectValue") and ANIMATION.Name ~= "Enter" and ANIMATION.Name ~= "Leave" then
+								table.insert(INTERACT_AMIMS, ANIMATION)
+							end
+						end
+						
+						if #INTERACT_AMIMS > 0 then
+							local CHOSEN = INTERACT_AMIMS[math.random(1, #INTERACT_AMIMS)]
+							if CHOSEN.Value then
+								INTERACT_AMIMATIONID = CHOSEN.Value.AnimationId
+								self.INTERACTION = ANIMATOR:LoadAnimation(CHOSEN.Value)
+								self.INTERACTION.Priority = Enum.AnimationPriority.Action
+							end
+						end
+						
+						-- Fire the Reached event with optional interact animation id
+						self.events.Reached:Fire(WAYPOINT, INTERACT_AMIMATIONID)
+						
+						-- Yields
+						if self.INTERACTION then
+							if ENTER_TRACK then
+								ENTER_TRACK.Stopped:Wait()
+							end
+							
+							self.INTERACTION:Play()
+							
+							if not self.INTERACTION.Looped then
+								self.INTERACTION.Stopped:Wait()
+							end
+						end
+					end
 
 					-- Sub-waypoints
 					runPath(WAYPOINT)

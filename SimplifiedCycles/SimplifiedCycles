@@ -64,7 +64,7 @@ function agent.new(character, costs)
 		}
 	}
 	self.Path = NoobPath.Humanoid(character, pathParams)
-	self.Path.Visualize = true
+	--self.Path.Visualize = true
 
 	return self
 end

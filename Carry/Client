@@ -206,39 +206,44 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 				local NEW_CAM_POS = CURRENT_CAM.CFrame.Position
 				local NEW_CARRY_PART_POS = CARRY_PART.Position
 
-				local NEW_DISTANCE = (NEW_CAM_POS - NEW_CARRY_PART_POS).Magnitude
+				if CARRY_PART then
+					local NEW_DISTANCE = (NEW_CAM_POS - NEW_CARRY_PART_POS).Magnitude
 
-				if CARRYING and NEW_DISTANCE <= MAX_DISTANCE then
-					local SCALED_FPS = dt*FPS_CAP
+					if CARRYING and NEW_DISTANCE <= MAX_DISTANCE then
+						local SCALED_FPS = dt*FPS_CAP
 
-					local X_DELTA = 0
-					local Y_DELTA = 0
+						local X_DELTA = 0
+						local Y_DELTA = 0
 
-					local CURRENT_CAM_CFRAME = CURRENT_CAM.CFrame
+						local CURRENT_CAM_CFRAME = CURRENT_CAM.CFrame
 
-					--//Rotate handler
-					if ROTATING then
-						if UserInputService:IsKeyDown(KEYCODE.W) then
-							X_DELTA = 10
+						--//Rotate handler
+						if ROTATING then
+							if UserInputService:IsKeyDown(KEYCODE.W) then
+								X_DELTA = 10
+							end
+							if UserInputService:IsKeyDown(KEYCODE.S) then
+								X_DELTA = -10
+							end
+							if UserInputService:IsKeyDown(KEYCODE.A) then
+								Y_DELTA = 10
+							end
+							if UserInputService:IsKeyDown(KEYCODE.D) then
+								Y_DELTA = -10
+							end
 						end
-						if UserInputService:IsKeyDown(KEYCODE.S) then
-							X_DELTA = -10
-						end
-						if UserInputService:IsKeyDown(KEYCODE.A) then
-							Y_DELTA = 10
-						end
-						if UserInputService:IsKeyDown(KEYCODE.D) then
-							Y_DELTA = -10
-						end
+
+						INITIAL_CAM_CFRAME = INITIAL_CAM_CFRAME * CFrame.Angles(math.rad(X_DELTA * SCALED_FPS), math.rad(Y_DELTA * SCALED_FPS), 0)
+
+						ALIGN_POS.Position = CURRENT_CAM_CFRAME.Position + CURRENT_CAM_CFRAME.LookVector * MIN_DISTANCE
+						ALIGN_ORIENTATION.CFrame = CURRENT_CAM_CFRAME * INITIAL_CAM_CFRAME:ToObjectSpace(INITIAL_PART_CFRAME)
+						
+						return
 					end
-
-					INITIAL_CAM_CFRAME = INITIAL_CAM_CFRAME * CFrame.Angles(math.rad(X_DELTA * SCALED_FPS), math.rad(Y_DELTA * SCALED_FPS), 0)
-
-					ALIGN_POS.Position = CURRENT_CAM_CFRAME.Position + CURRENT_CAM_CFRAME.LookVector * MIN_DISTANCE
-					ALIGN_ORIENTATION.CFrame = CURRENT_CAM_CFRAME * INITIAL_CAM_CFRAME:ToObjectSpace(INITIAL_PART_CFRAME)
-				else
-					NEW_THREAD:Disconnect()
 				end
+				
+				--//Disconnect if fail
+				NEW_THREAD:Disconnect()
 			end)
 		end
 	end

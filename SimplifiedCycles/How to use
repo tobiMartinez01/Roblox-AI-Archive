@@ -1,4 +1,4 @@
-local SimplifiedWander = require(game.ServerStorage.SimplifiedWander)
+local SimplifiedCycles = require(game.ServerStorage.SimplifiedCycles)
 
 local Costs = {
 	-- Smaller = higher priority
@@ -6,20 +6,11 @@ local Costs = {
 	Blocked = math.huge,
 }
 
-local NPC = workspace.NPCs["Bricktopia Bay"].Episo.Episo
-local waypoints = workspace.NPCs["Bricktopia Bay"].Episo
+local NPC = workspace.NPCs["Bricktopia Bay"].Rose.Rose
+local waypoints = workspace.NPCs["Bricktopia Bay"].Rose
 
-local agent = SimplifiedWander.new(NPC, Costs)
+local agent = SimplifiedCycles.new(NPC, Costs)
 agent.Debounce = 2
 agent.Randomized = true
 
 agent:Run(waypoints)
-
-agent.Next:Connect(function(nextWaypoint)
-	print(NPC.Name, "is going to", nextWaypoint)
-end)
-
-agent.Reached:Connect(function(reachedWaypoint)
-	print(NPC.Name, "reached", reachedWaypoint)
-end)
-

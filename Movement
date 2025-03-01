@@ -1,0 +1,58 @@
+-- Services
+local RUNSERVICE = game:GetService("RunService")
+local PLAYER_SERVICE = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+-- Client
+local PLAYER = PLAYER_SERVICE.LocalPlayer
+
+--Params
+local WALK_SPEED = 10
+local SPRINT_SPEED = 25
+
+local SPRINT_ACCEL = 0.5 --seconds
+local IS_SPRINTING = false
+
+local ELAPSED_TIME
+
+-- Graphs
+local SPRINT_GRAPH = require(script.ExportedCurve)
+
+-- Functions
+local function Lerp(num, goal, i)
+	return num + (goal-num)*i
+end
+
+UIS.InputBegan:Connect(function(INPUT, CHATTING)
+	-- No chatting check
+	if CHATTING then
+		return
+	end
+	
+	-- Input
+	if INPUT.KeyCode == Enum.KeyCode.LeftShift then
+		-- Variables
+		local START_TICK = tick()
+		local START_SPEED = PLAYER.Character.Humanoid.WalkSpeed
+		local ELAPSED_TIME = 0
+
+		IS_SPRINTING = not IS_SPRINTING
+		local IS_SPRINTING_CHECK = IS_SPRINTING
+		
+		-- Acceleration
+		coroutine.wrap(function()
+			while (ELAPSED_TIME < SPRINT_ACCEL) and IS_SPRINTING_CHECK == IS_SPRINTING do
+				ELAPSED_TIME = tick() - START_TICK 
+				local PROGRESS = ELAPSED_TIME / SPRINT_ACCEL
+				
+				if IS_SPRINTING then
+					PLAYER.Character.Humanoid.WalkSpeed = Lerp(START_SPEED, SPRINT_SPEED, SPRINT_GRAPH:Get(PROGRESS))
+				else
+					PLAYER.Character.Humanoid.WalkSpeed = Lerp(START_SPEED, WALK_SPEED, SPRINT_GRAPH:Get(PROGRESS))
+				end
+				
+				RUNSERVICE.Heartbeat:Wait()
+			end
+		end)()
+	end
+end)

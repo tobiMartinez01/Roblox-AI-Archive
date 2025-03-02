@@ -5,11 +5,11 @@ local UIS = game:GetService("UserInputService")
 
 -- Client
 local PLAYER = PLAYER_SERVICE.LocalPlayer
+local CAMERA = workspace.CurrentCamera
 
 --Params
 local WALK_SPEED = 10
 local SPRINT_SPEED = 25
-
 local SPRINT_ACCEL = 0.5 --seconds
 
 -- Variables
@@ -24,6 +24,7 @@ local function Lerp(num, goal, i)
 	return num + (goal-num)*i
 end
 
+-- Sprinting
 UIS.InputBegan:Connect(function(INPUT, CHATTING)
 	-- No chatting check
 	if CHATTING then

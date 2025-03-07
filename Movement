@@ -62,14 +62,13 @@ UIS.InputBegan:Connect(function(INPUT, CHATTING)
 	end
 end)
 
-local INTENSITY = 0.5
-
 RUNSERVICE.RenderStepped:Connect(function(DT)
 	--#Checking if character exists
 	local CHARACTER = PLAYER.Character
 	if CHARACTER then
 		--#IDLE: 0.5 cycle/ second
 		local BOBBING_SPEED = 1
+		local INTENSITY = 0.25
 
 		--#Determine current speed based on sprint state
 		local currentSpeed = WALK_SPEED
@@ -80,6 +79,7 @@ RUNSERVICE.RenderStepped:Connect(function(DT)
 		--#Changing speed depending on movement
 		if CHARACTER.Humanoid.MoveDirection.Magnitude > 0 then
 			BOBBING_SPEED *= currentSpeed / 10
+			INTENSITY *= currentSpeed / 10
 		end
 
 		local X_EQUATION = cos(BOBBING_SPEED * math.pi * tick()) * INTENSITY

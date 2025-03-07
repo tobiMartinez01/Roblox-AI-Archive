@@ -8,13 +8,16 @@ local PLAYER = PLAYER_SERVICE.LocalPlayer
 local CAMERA = workspace.CurrentCamera
 
 --Params
-local WALK_SPEED = 10
+local WALK_SPEED = 16
 local SPRINT_SPEED = 25
 local SPRINT_ACCEL = 0.5 --seconds
 
 -- Variables
 local IS_SPRINTING = false
 local ELAPSED_TIME = 0
+
+local sin = math.sin
+local cos = math.cos
 
 -- Graphs
 local SPRINT_GRAPH = require(script.Acceleration)
@@ -56,5 +59,32 @@ UIS.InputBegan:Connect(function(INPUT, CHATTING)
 				RUNSERVICE.Heartbeat:Wait()
 			end
 		end)()
+	end
+end)
+
+local INTENSITY = 0.5
+
+RUNSERVICE.RenderStepped:Connect(function(DT)
+	--#Checking if character exists
+	local CHARACTER = PLAYER.Character
+	if CHARACTER then
+		--#IDLE: 0.5 cycle/ second
+		local BOBBING_SPEED = 1
+
+		--#Determine current speed based on sprint state
+		local currentSpeed = WALK_SPEED
+		if IS_SPRINTING then
+			currentSpeed = SPRINT_SPEED
+		end
+
+		--#Changing speed depending on movement
+		if CHARACTER.Humanoid.MoveDirection.Magnitude > 0 then
+			BOBBING_SPEED *= currentSpeed / 10
+		end
+
+		local X_EQUATION = cos(BOBBING_SPEED * math.pi * tick()) * INTENSITY
+		local Y_EQUATION = math.abs(sin(BOBBING_SPEED * math.pi * tick()) * INTENSITY) - INTENSITY
+
+		CHARACTER.Humanoid.CameraOffset = CHARACTER.Humanoid.CameraOffset:Lerp(Vector3.new(X_EQUATION, Y_EQUATION, 0), 0.1)
 	end
 end)

@@ -33,7 +33,7 @@ UIS.InputBegan:Connect(function(INPUT, CHATTING)
 	if CHATTING then
 		return
 	end
-	
+
 	-- Input
 	if INPUT.KeyCode == Enum.KeyCode.LeftShift then
 		-- Variables
@@ -43,48 +43,79 @@ UIS.InputBegan:Connect(function(INPUT, CHATTING)
 
 		IS_SPRINTING = not IS_SPRINTING
 		local IS_SPRINTING_CHECK = IS_SPRINTING
-		
+
 		-- Acceleration
 		coroutine.wrap(function()
 			while (ELAPSED_TIME < SPRINT_ACCEL) and IS_SPRINTING_CHECK == IS_SPRINTING do
 				ELAPSED_TIME = tick() - INITIAL_TICK 
 				local PROGRESS = ELAPSED_TIME / SPRINT_ACCEL
-				
+
 				if IS_SPRINTING then
 					PLAYER.Character.Humanoid.WalkSpeed = Lerp(INITIAL_WALKSPEED, SPRINT_SPEED, SPRINT_GRAPH:Get(PROGRESS))
 				else
 					PLAYER.Character.Humanoid.WalkSpeed = Lerp(INITIAL_WALKSPEED, WALK_SPEED, SPRINT_GRAPH:Get(PROGRESS))
 				end
-				
+
 				RUNSERVICE.Heartbeat:Wait()
 			end
 		end)()
 	end
 end)
 
+--// Viewbobbing
+-- Variables
+local TweenService = game:GetService("TweenService")
+
+local IDLE_INTENSITY = 0.25
+local IDLE_VELOCITY = .25 --# 2 cycles/s => 4*pi
+
+local INTENSITY = 0.5
+local VELOCITY = 0.75 --# 2 cycles/s => 4*pi
+
+local BOBBING_X = 0
+local BOBBING_Y = 0
+
+local smoothDuration = 1
+local starttime = 0
+
 RUNSERVICE.RenderStepped:Connect(function(DT)
-	--#Checking if character exists
 	local CHARACTER = PLAYER.Character
 	if CHARACTER then
-		--#IDLE: 0.5 cycle/ second
-		local BOBBING_SPEED = 1
-		local INTENSITY = 0.25
-
-		--#Determine current speed based on sprint state
-		local currentSpeed = WALK_SPEED
-		if IS_SPRINTING then
-			currentSpeed = SPRINT_SPEED
-		end
-
-		--#Changing speed depending on movement
+		--  Variables
+		local intensity
+		local velocity
+		
+		--# Calculating intensity and velocity
+		-- Checking if character is moving or not
 		if CHARACTER.Humanoid.MoveDirection.Magnitude > 0 then
-			BOBBING_SPEED *= currentSpeed / 10
-			INTENSITY *= currentSpeed / 10
+			-- Getting intensity and velocity according to player's walkspeed
+			local ratio
+			if IS_SPRINTING then
+				ratio = SPRINT_SPEED/10
+			else
+				ratio = WALK_SPEED/10
+			end
+			
+			intensity = 0.5 * ratio
+			velocity = 0.75 * ratio
+		else
+			intensity = IDLE_INTENSITY
+			velocity = IDLE_VELOCITY
 		end
-
-		local X_EQUATION = cos(BOBBING_SPEED * math.pi * tick()) * INTENSITY
-		local Y_EQUATION = math.abs(sin(BOBBING_SPEED * math.pi * tick()) * INTENSITY) - INTENSITY
-
-		CHARACTER.Humanoid.CameraOffset = CHARACTER.Humanoid.CameraOffset:Lerp(Vector3.new(X_EQUATION, Y_EQUATION, 0), 0.1)
+		
+		-- Bobbing equations
+		local t = tick()
+		local x_equation = sin(t * (velocity*2*math.pi)) * intensity
+		local y_equation = math.abs(sin(t * (velocity*2*math.pi) + math.pi/2) * intensity * 0.5) - intensity * 0.5
+		
+		local target_offset = Vector3.new(x_equation, y_equation, 0)
+		
+		-- Lerp
+		local alpha = TweenService:GetValue(math.min((t - starttime) / smoothDuration, 1), Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		CHARACTER.Humanoid.CameraOffset = CHARACTER.Humanoid.CameraOffset:Lerp(target_offset, alpha)
+		
+		--print(alpha)
+		
+		starttime = t
 	end
 end)

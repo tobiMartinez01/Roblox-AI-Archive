@@ -104,7 +104,7 @@ local starttime = 0
 RUNSERVICE.RenderStepped:Connect(function(DT)
 	if CHARACTER then
 		local HRP = CHARACTER.HumanoidRootPart
-		
+
 		--  Variables
 		local intensity
 		local velocity
@@ -134,12 +134,6 @@ RUNSERVICE.RenderStepped:Connect(function(DT)
 
 		local target_offset = Vector3.new(x_equation, y_equation, 0)
 
-		-- Lerp
-		local alpha = TweenService:GetValue(math.min((t - starttime) / smoothDuration, 1), Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-		CHARACTER.Humanoid.CameraOffset = CHARACTER.Humanoid.CameraOffset:Lerp(target_offset, alpha)
-
-		--print(alpha)
-
-		starttime = tick()
+		CHARACTER.Humanoid.CameraOffset = CHARACTER.Humanoid.CameraOffset:Lerp(target_offset, 0.03)
 	end
 end)

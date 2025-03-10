@@ -27,6 +27,29 @@ local function Lerp(num, goal, i)
 	return num + (goal-num)*i
 end
 
+-- Character
+local CHARACTER = nil
+local VectorForce
+
+PLAYER.CharacterAdded:Connect(function(character)
+	CHARACTER = character
+
+	local HRP = CHARACTER.HumanoidRootPart
+
+	-- Gravity related
+	if not CHARACTER:FindFirstChild("Anti_Gravity") then
+		-- Changing gravity
+		VectorForce = Instance.new("VectorForce")
+		VectorForce.Name = "Anti_Gravity"
+		VectorForce.Parent = CHARACTER
+
+		VectorForce.ApplyAtCenterOfMass = true
+		VectorForce.Attachment0 = HRP.RootAttachment
+		VectorForce.Force = Vector3.new(0, HRP:GetMass() * 650, 0)
+	end
+end)
+
+
 -- Sprinting
 UIS.InputBegan:Connect(function(INPUT, CHATTING)
 	-- No chatting check
@@ -38,7 +61,7 @@ UIS.InputBegan:Connect(function(INPUT, CHATTING)
 	if INPUT.KeyCode == Enum.KeyCode.LeftShift then
 		-- Variables
 		local INITIAL_TICK = tick()
-		local INITIAL_WALKSPEED = PLAYER.Character.Humanoid.WalkSpeed
+		local INITIAL_WALKSPEED = CHARACTER.Humanoid.WalkSpeed
 		local ELAPSED_TIME = 0
 
 		IS_SPRINTING = not IS_SPRINTING
@@ -51,9 +74,9 @@ UIS.InputBegan:Connect(function(INPUT, CHATTING)
 				local PROGRESS = ELAPSED_TIME / SPRINT_ACCEL
 
 				if IS_SPRINTING then
-					PLAYER.Character.Humanoid.WalkSpeed = Lerp(INITIAL_WALKSPEED, SPRINT_SPEED, SPRINT_GRAPH:Get(PROGRESS))
+					CHARACTER.Humanoid.WalkSpeed = Lerp(INITIAL_WALKSPEED, SPRINT_SPEED, SPRINT_GRAPH:Get(PROGRESS))
 				else
-					PLAYER.Character.Humanoid.WalkSpeed = Lerp(INITIAL_WALKSPEED, WALK_SPEED, SPRINT_GRAPH:Get(PROGRESS))
+					CHARACTER.Humanoid.WalkSpeed = Lerp(INITIAL_WALKSPEED, WALK_SPEED, SPRINT_GRAPH:Get(PROGRESS))
 				end
 
 				RUNSERVICE.Heartbeat:Wait()
@@ -79,12 +102,13 @@ local smoothDuration = 1
 local starttime = 0
 
 RUNSERVICE.RenderStepped:Connect(function(DT)
-	local CHARACTER = PLAYER.Character
 	if CHARACTER then
+		local HRP = CHARACTER.HumanoidRootPart
+		
 		--  Variables
 		local intensity
 		local velocity
-		
+
 		--# Calculating intensity and velocity
 		-- Checking if character is moving or not
 		if CHARACTER.Humanoid.MoveDirection.Magnitude > 0 and CHARACTER.Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
@@ -95,27 +119,27 @@ RUNSERVICE.RenderStepped:Connect(function(DT)
 			else
 				ratio = WALK_SPEED/10
 			end
-			
+
 			intensity = 0.5 * ratio
 			velocity = 0.75 * ratio
 		else
 			intensity = IDLE_INTENSITY
 			velocity = IDLE_VELOCITY
 		end
-		
+
 		-- Bobbing equations
 		local t = tick()
 		local x_equation = sin(t * (velocity*2*math.pi)) * intensity
 		local y_equation = math.abs(sin(t * (velocity*2*math.pi) + math.pi/2) * intensity * 0.5) - intensity * 0.5
-		
+
 		local target_offset = Vector3.new(x_equation, y_equation, 0)
-		
+
 		-- Lerp
 		local alpha = TweenService:GetValue(math.min((t - starttime) / smoothDuration, 1), Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 		CHARACTER.Humanoid.CameraOffset = CHARACTER.Humanoid.CameraOffset:Lerp(target_offset, alpha)
-		
+
 		--print(alpha)
-		
+
 		starttime = t
 	end
 end)

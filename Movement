@@ -140,6 +140,6 @@ RUNSERVICE.RenderStepped:Connect(function(DT)
 
 		--print(alpha)
 
-		starttime = t
+		starttime = tick()
 	end
 end)

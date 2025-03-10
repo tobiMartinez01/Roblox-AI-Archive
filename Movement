@@ -87,7 +87,7 @@ RUNSERVICE.RenderStepped:Connect(function(DT)
 		
 		--# Calculating intensity and velocity
 		-- Checking if character is moving or not
-		if CHARACTER.Humanoid.MoveDirection.Magnitude > 0 then
+		if CHARACTER.Humanoid.MoveDirection.Magnitude > 0 and CHARACTER.Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
 			-- Getting intensity and velocity according to player's walkspeed
 			local ratio
 			if IS_SPRINTING then

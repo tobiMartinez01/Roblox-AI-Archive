@@ -59,6 +59,7 @@ function updateViewbobbing(DT)
 		currentOmega = currentOmega + (targetOmega - currentOmega) * SMOOTHING * DT
 		currentAmplitute = currentAmplitute + (targetAmplitute - currentAmplitute) * SMOOTHING * DT
 		
+		--//Phase is also omega*time, this line is phase rotating to a new phase
 		phase = phase + currentOmega * DT
 		
 		local bobbing = {

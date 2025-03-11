@@ -1,0 +1,73 @@
+-- Services
+local RUNSERVICE = game:GetService("RunService")
+local PLAYER_SERVICE = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+-- Client
+local PLAYER = PLAYER_SERVICE.LocalPlayer
+local CAMERA = workspace.CurrentCamera
+
+--Params
+local WALK_SPEED = 16
+local SPRINT_SPEED = 25
+local SPRINT_ACCEL = 0.5 --seconds
+
+-- Variables
+local IS_SPRINTING = false
+local ELAPSED_TIME = 0
+
+local sin = math.sin
+local cos = math.cos
+local pi = math.pi
+
+-- Functions
+local function Lerp(num, goal, i)
+	return num + (goal-num)*i
+end
+
+-- Character
+local CHARACTER = nil
+local HRP = nil
+
+PLAYER.CharacterAdded:Connect(function(character)
+	CHARACTER = character
+	HRP = character.HumanoidRootPart
+end)
+
+--//Params
+local AMPLITUTE = 0.5
+local SMOOTHING = 5.0
+
+--//Variables
+local currentOmega = 0
+local currentAmplitute = 0
+
+local phase = 0
+
+function updateViewbobbing(DT)
+	--//Checking if character exists
+	if CHARACTER then
+		--//Getting velocity
+		local vel = HRP.Velocity
+		local speed = vel.Magnitude
+		
+		local targetOmega = speed * 0.2 * pi
+		--//Using math.min to flexibly transit between different speed and humanoidstates
+		local targetAmplitute = math.min(speed * 0.1, AMPLITUTE)
+
+		--//Smoothen the delta
+		currentOmega = currentOmega + (targetOmega - currentOmega) * SMOOTHING * DT
+		currentAmplitute = currentAmplitute + (targetAmplitute - currentAmplitute) * SMOOTHING * DT
+		
+		phase = phase + currentOmega * DT
+		
+		local bobbing = {
+			X = currentAmplitute * sin(phase),
+			Y = math.abs(currentAmplitute * sin(phase + pi/2)) - currentAmplitute
+		}
+		
+		CHARACTER.Humanoid.CameraOffset = Vector3.new(bobbing.X, bobbing.Y, 0)
+	end
+end
+
+RUNSERVICE.RenderStepped:Connect(updateViewbobbing)

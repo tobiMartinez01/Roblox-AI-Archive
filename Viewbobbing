@@ -7,15 +7,6 @@ local UIS = game:GetService("UserInputService")
 local PLAYER = PLAYER_SERVICE.LocalPlayer
 local CAMERA = workspace.CurrentCamera
 
---Params
-local WALK_SPEED = 16
-local SPRINT_SPEED = 25
-local SPRINT_ACCEL = 0.5 --seconds
-
--- Variables
-local IS_SPRINTING = false
-local ELAPSED_TIME = 0
-
 local sin = math.sin
 local cos = math.cos
 local pi = math.pi

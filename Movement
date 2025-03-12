@@ -35,18 +35,35 @@ PLAYER.CharacterAdded:Connect(function(character)
 	CHARACTER = character
 
 	local HRP = CHARACTER.HumanoidRootPart
+	
+	local character_destroying
+	local anti_gravity
+	
+	-- Gravity related
+	if not CHARACTER:FindFirstChild("Anti_Gravity") then
+		-- Changing gravity
+		VectorForce = Instance.new("VectorForce")
+		VectorForce.Name = "Anti_Gravity"
+		VectorForce.Parent = CHARACTER
 
-	---- Gravity related
-	--if not CHARACTER:FindFirstChild("Anti_Gravity") then
-	--	-- Changing gravity
-	--	VectorForce = Instance.new("VectorForce")
-	--	VectorForce.Name = "Anti_Gravity"
-	--	VectorForce.Parent = CHARACTER
-
-	--	VectorForce.ApplyAtCenterOfMass = true
-	--	VectorForce.Attachment0 = HRP.RootAttachment
-	--	VectorForce.Force = Vector3.new(0, HRP:GetMass() * 650, 0)
-	--end
+		VectorForce.ApplyAtCenterOfMass = true
+		VectorForce.Attachment0 = HRP.RootAttachment
+		VectorForce.Force = Vector3.new(0, HRP:GetMass() * 650, 0)
+		VectorForce.Enabled = false
+		
+		anti_gravity = CHARACTER.Humanoid.StateChanged:Connect(function(oldState, newState)
+			if newState == Enum.HumanoidStateType.Jumping or newState == Enum.HumanoidStateType.Freefall then
+				VectorForce.Enabled = true
+			else
+				VectorForce.Enabled = false
+			end
+		end)
+		
+		character_destroying = CHARACTER.Destroying:Connect(function()
+			anti_gravity:Disconnect()
+			character_destroying:Disconnect()
+		end)
+	end
 end)
 
 

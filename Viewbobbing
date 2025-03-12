@@ -20,20 +20,36 @@ end
 local CHARACTER = nil
 local HRP = nil
 
-PLAYER.CharacterAdded:Connect(function(character)
-	CHARACTER = character
-	HRP = character.HumanoidRootPart
-end)
-
 --//Params
 local AMPLITUTE = 0.5
 local SMOOTHING = 5.0
 
 --//Variables
+local viewbobbing_enabled = true
 local currentOmega = 0
 local currentAmplitute = 0
 
 local phase = 0
+
+PLAYER.CharacterAdded:Connect(function(character)
+	CHARACTER = character
+	HRP = character.HumanoidRootPart
+	
+	local character_destroying
+	local state_changed
+	
+	state_changed = CHARACTER.Humanoid.StateChanged:Connect(function(oldState, newState)
+		if newState == Enum.HumanoidStateType.Jumping or newState == Enum.HumanoidStateType.Freefall then
+			viewbobbing_enabled = false
+		else
+			viewbobbing_enabled = true
+		end
+	end)
+	
+	character_destroying = CHARACTER.Destroying:Connect(function()
+		character_destroying:Disconnect()
+	end)
+end)
 
 function updateViewbobbing(DT)
 	--//Checking if character exists
@@ -45,6 +61,12 @@ function updateViewbobbing(DT)
 		local targetOmega = speed * 0.15 * pi
 		--//Using math.min to flexibly transit between different speed and humanoidstates
 		local targetAmplitute = math.min(speed * 0.015, AMPLITUTE)
+		
+		--//Checking if viewbobbing is enabled
+		if not viewbobbing_enabled then
+			targetOmega = 0
+			targetAmplitute = 0
+		end
 
 		--//Smoothen the delta
 		currentOmega = currentOmega + (targetOmega - currentOmega) * SMOOTHING * DT

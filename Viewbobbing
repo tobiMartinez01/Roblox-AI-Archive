@@ -42,9 +42,9 @@ function updateViewbobbing(DT)
 		local vel = HRP.Velocity
 		local speed = vel.Magnitude
 
-		local targetOmega = speed * 0.175 * pi
+		local targetOmega = speed * 0.15 * pi
 		--//Using math.min to flexibly transit between different speed and humanoidstates
-		local targetAmplitute = math.min(speed * 0.025, AMPLITUTE)
+		local targetAmplitute = math.min(speed * 0.015, AMPLITUTE)
 
 		--//Smoothen the delta
 		currentOmega = currentOmega + (targetOmega - currentOmega) * SMOOTHING * DT

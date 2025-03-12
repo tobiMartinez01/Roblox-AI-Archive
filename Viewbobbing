@@ -50,23 +50,23 @@ function updateViewbobbing(DT)
 		--//Getting velocity
 		local vel = HRP.Velocity
 		local speed = vel.Magnitude
-		
-		local targetOmega = speed * 0.2 * pi
+
+		local targetOmega = speed * 0.075 * pi
 		--//Using math.min to flexibly transit between different speed and humanoidstates
-		local targetAmplitute = math.min(speed * 0.1, AMPLITUTE)
+		local targetAmplitute = math.min(speed * 0.025, AMPLITUTE)
 
 		--//Smoothen the delta
 		currentOmega = currentOmega + (targetOmega - currentOmega) * SMOOTHING * DT
 		currentAmplitute = currentAmplitute + (targetAmplitute - currentAmplitute) * SMOOTHING * DT
-		
+
 		--//Phase is also omega*time, this line is phase rotating to a new phase
 		phase = phase + currentOmega * DT
-		
+
 		local bobbing = {
 			X = currentAmplitute * sin(phase),
 			Y = math.abs(currentAmplitute * sin(phase + pi/2)) - currentAmplitute
 		}
-		
+
 		CHARACTER.Humanoid.CameraOffset = Vector3.new(bobbing.X, bobbing.Y, 0)
 	end
 end

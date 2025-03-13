@@ -1,28 +1,28 @@
 -- Utility Functions
 local function sortTable(t)
-    table.sort(t, function(a, b)
-        return tonumber(a.Name) < tonumber(b.Name)
-    end)
+	table.sort(t, function(a, b)
+		return tonumber(a.Name) < tonumber(b.Name)
+	end)
 end
 
 local function importWaypoints(folder)
-    local waypoints = {}
-    for _, waypoint in ipairs(folder:GetChildren()) do
-        if waypoint:IsA("BasePart") then
-            table.insert(waypoints, waypoint)
-        end
-    end
-    sortTable(waypoints)
-    return waypoints
+	local waypoints = {}
+	for _, waypoint in ipairs(folder:GetChildren()) do
+		if waypoint:IsA("BasePart") then
+			table.insert(waypoints, waypoint)
+		end
+	end
+	sortTable(waypoints)
+	return waypoints
 end
 
 local function clearConnections(connections)
-    for key, conn in pairs(connections) do
-        if conn then
-            conn:Disconnect()
-            connections[key] = nil
-        end
-    end
+	for key, conn in pairs(connections) do
+		if conn then
+			conn:Disconnect()
+			connections[key] = nil
+		end
+	end
 end
 
 -----------------------------------------------------------
@@ -41,39 +41,39 @@ local NoobPath = require(ServerStorage.NoobPath)
 
 -- Constructor
 function agent.new(character, costs)
-    local self = setmetatable({
-        events = {
-            Reached = Instance.new("BindableEvent"),
-            Next = Instance.new("BindableEvent")
-        },
-        connections = {}
-    }, agent)
+	local self = setmetatable({
+		events = {
+			Reached = Instance.new("BindableEvent"),
+			Next = Instance.new("BindableEvent")
+		},
+		connections = {}
+	}, agent)
 
-    self.Character = character
-    self.Reached = self.events.Reached.Event
-    self.Next = self.events.Next.Event
+	self.Character = character
+	self.Reached = self.events.Reached.Event
+	self.Next = self.events.Next.Event
 
-    local pathParams = {
-        AgentHeight = character:GetExtentsSize().Y,
-        AgentCanJump = true,
-        AgentCanClimb = true,
-        Costs = costs,
-        WaypointSpacing = 8,
-        PathSettings = {
-            SupportPartialPath = true
-        }
-    }
+	local pathParams = {
+		AgentHeight = character:GetExtentsSize().Y,
+		AgentCanJump = true,
+		AgentCanClimb = true,
+		Costs = costs,
+		--WaypointSpacing = 8,
+		PathSettings = {
+			SupportPartialPath = true
+		}
+	}
 	self.Path = NoobPath.Humanoid(character, pathParams)
 	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
-	
+
 	character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
 		self.Path.Speed = character.Humanoid.WalkSpeed
 	end)
-    --self.Path.Visualize = true -- Uncomment to visualize paths
+	--self.Path.Visualize = true -- Uncomment to visualize paths
 
-    return self
+	return self
 end
 
 -----------------------------------------------------------
@@ -85,25 +85,29 @@ function agent:Run(PATH_FOLDER)
 		local HRP = CHARACTER.HumanoidRootPart
 		local HUMANOID = CHARACTER.Humanoid
 		local ANIMATOR = HUMANOID.Animator
-		
+
 		local PATH = self.Path
-		
+
 		local function runPath(folder)		
 			local path = importWaypoints(folder)
-			
+
 			if #path > 0 then
 				local INDEX = 1
 				local LAST_INDEX
 				local FINISHED = 0
-				
+
 				local WAYPOINT = path[INDEX]
-				
+
 				local function gotoWaypoint()
 					-- Next index
 					if self.Randomized then
-						repeat 
-							INDEX = math.random(1, #path)
-						until ((path[INDEX] ~= WAYPOINT and INDEX ~= LAST_INDEX) or #path < 3) and not path[INDEX]:GetAttribute("Unavailable")
+						local available = {}
+						for i, wp in ipairs(path) do
+							if not wp:GetAttribute("Unavailable") and wp ~= WAYPOINT and i ~= LAST_INDEX then
+								table.insert(available, i)
+							end
+						end
+						INDEX = available[#available > 0 and math.random(1, #available) or 1]
 					else
 						repeat
 							INDEX = (INDEX % #path) + 1
@@ -119,19 +123,19 @@ function agent:Run(PATH_FOLDER)
 					task.wait(self.Debounce or 0)
 
 					-- [[ RUN ]]
-					
+
 					-- Unanchor to make them be able to move again
 					HRP.Anchored = false
-					
+
 					-- Fire event
 					self.events.Next:Fire(WAYPOINT)
-				
+
 					--Stopping animations
 					if self.INTERACTION then
 						self.INTERACTION:Stop()
 						self.INTERACTION = nil
 					end
-					
+
 					-- Handle exit animation from previous waypoint if available
 					if path[LAST_INDEX] then
 						local LEAVE_ANIMATION = path[LAST_INDEX]:FindFirstChild("Leave")
@@ -153,18 +157,18 @@ function agent:Run(PATH_FOLDER)
 					FINISHED+=1
 					LAST_INDEX = INDEX
 					WAYPOINT:SetAttribute("Unavailable", nil)
-					
+
 					self.Debounce = WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = WAYPOINT:GetAttribute("Randomized") or false
-					
+
 					-- Animation
 					local ATTACHMENT = WAYPOINT:FindFirstChildWhichIsA("Attachment")
-					
+
 					if ATTACHMENT then
 						--[[ STARE FEATURE ]]
 						local ORIGIN = WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
 						local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
-						
+
 						-- Wait until the NPC is in an idle state
 						repeat 
 							RunService.Heartbeat:Wait()
@@ -174,38 +178,38 @@ function agent:Run(PATH_FOLDER)
 							and HUMANOID.FloorMaterial ~= Enum.Material.Air 
 							and HRP.Velocity.Magnitude < 0.01 
 							and PATH.Idle
-						
+
 						-- Anchor momentarily to avoid disturbance
 						HRP.Anchored = true
-						
+
 						-- Tween rotation toward target direction
 						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 						lookTween:Play()
-						
+
 						--lookTween.Completed:Wait()
-						
+
 						-- Enter animation
 						local ENTER_ANIMATION = WAYPOINT:FindFirstChild("Enter")
 						local ENTER_TRACK
-						
+
 						if ENTER_ANIMATION and ENTER_ANIMATION.Value then
 							ENTER_TRACK = ANIMATOR:LoadAnimation(ENTER_ANIMATION.Value)
 							ENTER_TRACK.Looped = false
 							ENTER_TRACK.Priority = Enum.AnimationPriority.Action2
 							ENTER_TRACK:Play()
 						end
-						
+
 						-- Handle interact animations (choose one at random)
 						local INTERACT_AMIMS = {}
 						local INTERACT_AMIMATIONID
-						
+
 						for _, ANIMATION in pairs(WAYPOINT:GetChildren()) do
 							if ANIMATION:IsA("ObjectValue") and ANIMATION.Name ~= "Enter" and ANIMATION.Name ~= "Leave" then
 								table.insert(INTERACT_AMIMS, ANIMATION)
 							end
 						end
-						
+
 						if #INTERACT_AMIMS > 0 then
 							local CHOSEN = INTERACT_AMIMS[math.random(1, #INTERACT_AMIMS)]
 							if CHOSEN.Value then
@@ -214,18 +218,18 @@ function agent:Run(PATH_FOLDER)
 								self.INTERACTION.Priority = Enum.AnimationPriority.Action
 							end
 						end
-						
+
 						-- Fire the Reached event with optional interact animation id
 						self.events.Reached:Fire(WAYPOINT, INTERACT_AMIMATIONID)
-						
+
 						-- Yields
 						if self.INTERACTION then
 							if ENTER_TRACK then
 								ENTER_TRACK.Stopped:Wait()
 							end
-							
+
 							self.INTERACTION:Play()
-							
+
 							if not self.INTERACTION.Looped then
 								self.INTERACTION.Stopped:Wait()
 							end
@@ -248,7 +252,16 @@ function agent:Run(PATH_FOLDER)
 		runPath(PATH_FOLDER)
 	end)
 
-    coroutine.resume(self.Thread)
+	coroutine.resume(self.Thread)
+end
+
+function agent:Destroy()
+	clearConnections(self.connections)
+	self.events.Reached:Destroy()
+	self.events.Next:Destroy()
+	if self.Thread then
+		coroutine.close(self.Thread)
+	end
 end
 
 return agent

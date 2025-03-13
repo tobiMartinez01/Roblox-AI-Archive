@@ -147,11 +147,23 @@ function agent:Run(PATH_FOLDER)
 							LEAVE_TRACK.Stopped:Wait()
 						end
 					end
+					
+					-- Connections
+					self.connections.TRAPPED = PATH.Trapped:Connect(function()
+						PATH:Run(WAYPOINT.Position)
+					end)
+					
+					self.connections.ERROR = PATH.Error:Connect(function()
+						PATH:Run(WAYPOINT.Position)
+					end)
 
+					--Run
 					PATH:Run(WAYPOINT.Position)
 
-					-- Finished
+					-- Wait until finished
 					PATH.Reached:Wait()
+					
+					clearConnections(self.connections)
 
 					-- Overriding values
 					FINISHED+=1

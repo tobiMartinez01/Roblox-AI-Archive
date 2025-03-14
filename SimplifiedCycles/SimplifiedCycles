@@ -16,6 +16,18 @@ local function importWaypoints(folder)
 	return waypoints
 end
 
+local function findAnimationTrackInTable(t, animId)
+	for i, v in pairs(t) do
+		if v.Animation.AnimationId == animId then
+			return v
+		end
+		
+		findAnimationTrackInTable(v, animId)
+	end
+	
+	return false
+end
+
 local function clearConnections(connections)
 	for key, conn in pairs(connections) do
 		if conn then
@@ -86,6 +98,15 @@ function agent:Run(PATH_FOLDER)
 		local ANIMATOR = HUMANOID.Animator
 
 		local PATH = self.Path
+		
+		local animationTracks = {}
+		
+		-- Load animation
+		for i, objValue in pairs(PATH_FOLDER:GetDescendants()) do
+			if objValue:IsA("ObjectValue") and objValue.Value then
+				table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value))
+			end
+		end
 
 		local function runPath(folder)
 			local path = importWaypoints(folder)
@@ -95,7 +116,7 @@ function agent:Run(PATH_FOLDER)
 				local LAST_INDEX  = 0
 				local FINISHED = 0
 				local WAYPOINT = path[INDEX] 
-				
+
 				local function goToWaypoint()
 					-- Next index
 					if self.Randomized then
@@ -135,11 +156,11 @@ function agent:Run(PATH_FOLDER)
 						goToWaypoint()
 					end
 				end
-				
+
 				goToWaypoint()
 			end
 		end
-		
+
 		runPath(PATH_FOLDER)
 	end)
 

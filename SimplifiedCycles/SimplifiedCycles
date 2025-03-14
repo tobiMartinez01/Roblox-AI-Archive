@@ -64,7 +64,6 @@ function agent.new(character, costs)
 		}
 	}
 	self.Path = NoobPath.Humanoid(character, pathParams)
-	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
 

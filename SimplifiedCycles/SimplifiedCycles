@@ -255,8 +255,10 @@ function agent:Run(PATH_FOLDER)
 					if FINISHED < #path or folder == PATH_FOLDER then
 						gotoWaypoint()
 					else
-						if WAYPOINT.Parent then
-							runPath(WAYPOINT.Parent)
+						local PRE_WAYPOINT = WAYPOINT.Parent.Parent
+						if PRE_WAYPOINT and PRE_WAYPOINT:IsA("BasePart") then
+							print(CHARACTER.Name, "Outter-path")
+							runPath(PRE_WAYPOINT)
 						end
 					end
 				end

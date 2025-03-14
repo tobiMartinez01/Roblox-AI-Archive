@@ -189,15 +189,15 @@ function agent:Run(PATH_FOLDER)
 							and HRP.Velocity.Magnitude < 0.01 
 							and PATH.Idle
 
-						-- Anchor momentarily to avoid disturbance
-						HRP.Anchored = true
-
 						-- Tween rotation toward target direction
 						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 						lookTween:Play()
+						
+						-- Anchor momentarily to avoid disturbance
+						HRP.Anchored = true
 
-						--lookTween.Completed:Wait()
+						lookTween.Completed:Wait()
 
 						-- Enter animation
 						local ENTER_ANIMATION = WAYPOINT:FindFirstChild("Enter")

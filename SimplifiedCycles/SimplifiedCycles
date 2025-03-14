@@ -19,6 +19,7 @@ end
 local function clearConnections(connections)
 	for key, conn in pairs(connections) do
 		if conn then
+			print(conn)
 			conn:Disconnect()
 			connections[key] = nil
 		end
@@ -58,7 +59,7 @@ function agent.new(character, costs)
 		AgentCanJump = true,
 		AgentCanClimb = true,
 		Costs = costs,
-		WaypointSpacing = 8,
+		--WaypointSpacing = 8,
 		PathSettings = {
 			SupportPartialPath = true
 		}
@@ -87,6 +88,8 @@ function agent:Run(PATH_FOLDER)
 		local ANIMATOR = HUMANOID.Animator
 
 		local PATH = self.Path
+		
+		local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 
 		local function runPath(folder)		
 			local path = importWaypoints(folder)
@@ -188,7 +191,6 @@ function agent:Run(PATH_FOLDER)
 						HRP.Anchored = true
 
 						-- Tween rotation toward target direction
-						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 						lookTween:Play()
 

@@ -21,8 +21,6 @@ local function findAnimationTrackInTable(t, animId)
 		if v.Animation.AnimationId == animId then
 			return v
 		end
-		
-		findAnimationTrackInTable(v, animId)
 	end
 
 	return false

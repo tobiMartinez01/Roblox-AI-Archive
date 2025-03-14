@@ -168,7 +168,12 @@ function agent:Run(PATH_FOLDER)
 						-- Wait until the NPC is in an idle state
 						repeat 
 							RunService.Heartbeat:Wait()
-						until HUMANOID.FloorMaterial ~= Enum.Material.Air and PATH.Idle
+						until HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing 
+							and HUMANOID:GetState() ~= Enum.HumanoidStateType.Jumping 
+							and HUMANOID:GetState() ~= Enum.HumanoidStateType.Freefall 
+							and HUMANOID.FloorMaterial ~= Enum.Material.Air 
+							and HRP.Velocity.Magnitude < 0.01 
+							and PATH.Idle
 
 						-- Anchor momentarily to avoid disturbance
 						HRP.Anchored = true

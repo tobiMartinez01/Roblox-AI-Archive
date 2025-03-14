@@ -143,21 +143,10 @@ function agent:Run(PATH_FOLDER)
 						end
 					end
 
-					-- Connections
-					self.connections.TRAPPED = PATH.Trapped:Connect(function()
-						PATH:Run(self.WAYPOINT.Position)
-					end)
-
-					self.connections.ERROR = PATH.Error:Connect(function()
-						PATH:Run(self.WAYPOINT.Position)
-					end)
-
 					PATH:Run(self.WAYPOINT.Position)
 
 					-- Finished
 					PATH.Reached:Wait()
-
-					clearConnections(self.connections)
 
 					-- Overriding values
 					FINISHED+=1
@@ -255,6 +244,19 @@ function agent:Run(PATH_FOLDER)
 		end
 
 		runPath(PATH_FOLDER)
+		
+		-- Connections
+		self.connections.TRAPPED = PATH.Trapped:Connect(function()
+			if self.WAYPOINT then
+				PATH:Run(self.WAYPOINT.Position)
+			end
+		end)
+
+		self.connections.ERROR = PATH.Error:Connect(function()
+			if self.WAYPOINT then
+				PATH:Run(self.WAYPOINT.Position)
+			end
+		end)
 	end)
 
 	coroutine.resume(self.Thread)

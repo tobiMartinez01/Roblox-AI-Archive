@@ -19,7 +19,6 @@ end
 local function clearConnections(connections)
 	for key, conn in pairs(connections) do
 		if conn then
-			print(conn)
 			conn:Disconnect()
 			connections[key] = nil
 		end
@@ -59,7 +58,7 @@ function agent.new(character, costs)
 		AgentCanJump = true,
 		AgentCanClimb = true,
 		Costs = costs,
-		--WaypointSpacing = 8,
+		WaypointSpacing = 8,
 		PathSettings = {
 			SupportPartialPath = true
 		}
@@ -88,7 +87,6 @@ function agent:Run(PATH_FOLDER)
 		local ANIMATOR = HUMANOID.Animator
 
 		local PATH = self.Path
-		local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 
 		local function runPath(folder)		
 			local path = importWaypoints(folder)
@@ -98,7 +96,7 @@ function agent:Run(PATH_FOLDER)
 				local LAST_INDEX
 				local FINISHED = 0
 
-				self.WAYPOINT = path[INDEX]
+				local WAYPOINT = path[INDEX]
 
 				local function gotoWaypoint()
 					-- Next index
@@ -110,10 +108,10 @@ function agent:Run(PATH_FOLDER)
 						INDEX = (INDEX % #path) + 1
 					end
 
-					self.WAYPOINT = path[INDEX]
+					WAYPOINT = path[INDEX]
 
 					-- Occupied
-					self.WAYPOINT:SetAttribute("Unavailable", true)
+					WAYPOINT:SetAttribute("Unavailable", true)
 
 					-- Yield
 					task.wait(self.Debounce or 0)
@@ -124,7 +122,7 @@ function agent:Run(PATH_FOLDER)
 					HRP.Anchored = false
 
 					-- Fire event
-					self.events.Next:Fire(self.WAYPOINT)
+					self.events.Next:Fire(WAYPOINT)
 
 					--Stopping animations
 					if self.INTERACTION then
@@ -143,26 +141,41 @@ function agent:Run(PATH_FOLDER)
 							LEAVE_TRACK.Stopped:Wait()
 						end
 					end
+					
+					-- Connections
+					self.connections.TRAPPED = PATH.Trapped:Connect(function()
+						if self.WAYPOINT then
+							PATH:Run(self.WAYPOINT.Position)
+						end
+					end)
 
-					PATH:Run(self.WAYPOINT.Position)
+					self.connections.ERROR = PATH.Error:Connect(function()
+						if self.WAYPOINT then
+							PATH:Run(self.WAYPOINT.Position)
+						end
+					end)
+
+					PATH:Run(WAYPOINT.Position)
 
 					-- Finished
 					PATH.Reached:Wait()
+					
+					clearConnections(self.connections)
 
 					-- Overriding values
 					FINISHED+=1
 					LAST_INDEX = INDEX
-					self.WAYPOINT:SetAttribute("Unavailable", nil)
+					WAYPOINT:SetAttribute("Unavailable", nil)
 
-					self.Debounce = self.WAYPOINT:GetAttribute("Debounce") or 0
-					self.Randomized = self.WAYPOINT:GetAttribute("Randomized") or false
+					self.Debounce = WAYPOINT:GetAttribute("Debounce") or 0
+					self.Randomized = WAYPOINT:GetAttribute("Randomized") or false
 
 					-- Animation
-					local ATTACHMENT = self.WAYPOINT:FindFirstChildWhichIsA("Attachment")
+					local ATTACHMENT = WAYPOINT:FindFirstChildWhichIsA("Attachment")
 
 					if ATTACHMENT then
 						--[[ STARE FEATURE ]]
-						local ORIGIN = self.WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+						local ORIGIN = WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
 						local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
 
 						-- Wait until the NPC is in an idle state
@@ -179,13 +192,14 @@ function agent:Run(PATH_FOLDER)
 						HRP.Anchored = true
 
 						-- Tween rotation toward target direction
+						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 						lookTween:Play()
 
-						lookTween.Completed:Wait()
+						--lookTween.Completed:Wait()
 
 						-- Enter animation
-						local ENTER_ANIMATION = self.WAYPOINT:FindFirstChild("Enter")
+						local ENTER_ANIMATION = WAYPOINT:FindFirstChild("Enter")
 						local ENTER_TRACK
 
 						if ENTER_ANIMATION and ENTER_ANIMATION.Value then
@@ -199,7 +213,7 @@ function agent:Run(PATH_FOLDER)
 						local INTERACT_AMIMS = {}
 						local INTERACT_AMIMATIONID
 
-						for _, ANIMATION in pairs(self.WAYPOINT:GetChildren()) do
+						for _, ANIMATION in pairs(WAYPOINT:GetChildren()) do
 							if ANIMATION:IsA("ObjectValue") and ANIMATION.Name ~= "Enter" and ANIMATION.Name ~= "Leave" then
 								table.insert(INTERACT_AMIMS, ANIMATION)
 							end
@@ -215,7 +229,7 @@ function agent:Run(PATH_FOLDER)
 						end
 
 						-- Fire the Reached event with optional interact animation id
-						self.events.Reached:Fire(self.WAYPOINT, INTERACT_AMIMATIONID)
+						self.events.Reached:Fire(WAYPOINT, INTERACT_AMIMATIONID)
 
 						-- Yields
 						if self.INTERACTION then
@@ -232,7 +246,7 @@ function agent:Run(PATH_FOLDER)
 					end
 
 					-- Sub-waypoints
-					runPath(self.WAYPOINT)
+					runPath(WAYPOINT)
 
 					-- Continue same level path
 					if FINISHED < #path or folder == PATH_FOLDER then
@@ -245,19 +259,6 @@ function agent:Run(PATH_FOLDER)
 		end
 
 		runPath(PATH_FOLDER)
-		
-		-- Connections
-		self.connections.TRAPPED = PATH.Trapped:Connect(function()
-			if self.WAYPOINT then
-				PATH:Run(self.WAYPOINT.Position)
-			end
-		end)
-
-		self.connections.ERROR = PATH.Error:Connect(function()
-			if self.WAYPOINT then
-				PATH:Run(self.WAYPOINT.Position)
-			end
-		end)
 	end)
 
 	coroutine.resume(self.Thread)

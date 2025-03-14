@@ -58,7 +58,7 @@ function agent.new(character, costs)
 		AgentCanJump = true,
 		AgentCanClimb = true,
 		Costs = costs,
-		--WaypointSpacing = 8,
+		WaypointSpacing = 8,
 		PathSettings = {
 			SupportPartialPath = true
 		}
@@ -93,7 +93,7 @@ function agent:Run(PATH_FOLDER)
 
 			if #path > 0 then
 				local INDEX = 1
-				local LAST_INDEX = 0
+				local LAST_INDEX
 				local FINISHED = 0
 
 				local WAYPOINT = path[INDEX]
@@ -101,13 +101,9 @@ function agent:Run(PATH_FOLDER)
 				local function gotoWaypoint()
 					-- Next index
 					if self.Randomized then
-						local available = {}
-						for i, wp in ipairs(path) do
-							if wp ~= WAYPOINT and i ~= LAST_INDEX then
-								table.insert(available, i)
-							end
-						end
-						INDEX = available[#available > 0 and math.random(1, #available) or 1]
+						repeat 
+							INDEX = math.random(1, #path)
+						until ((path[INDEX] ~= WAYPOINT and INDEX ~= LAST_INDEX) or #path < 3)
 					else
 						INDEX = (INDEX % #path) + 1
 					end
@@ -145,7 +141,7 @@ function agent:Run(PATH_FOLDER)
 							LEAVE_TRACK.Stopped:Wait()
 						end
 					end
-
+					
 					-- Connections
 					self.connections.TRAPPED = PATH.Trapped:Connect(function()
 						PATH:Run(WAYPOINT.Position)
@@ -154,13 +150,12 @@ function agent:Run(PATH_FOLDER)
 					self.connections.ERROR = PATH.Error:Connect(function()
 						PATH:Run(WAYPOINT.Position)
 					end)
-
-					--Run
+					
 					PATH:Run(WAYPOINT.Position)
 
-					-- Wait until finished
+					-- Finished
 					PATH.Reached:Wait()
-
+					
 					clearConnections(self.connections)
 
 					-- Overriding values
@@ -189,13 +184,13 @@ function agent:Run(PATH_FOLDER)
 							and HRP.Velocity.Magnitude < 0.01 
 							and PATH.Idle
 
+						-- Anchor momentarily to avoid disturbance
+						HRP.Anchored = true
+
 						-- Tween rotation toward target direction
 						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
 						lookTween:Play()
-						
-						-- Anchor momentarily to avoid disturbance
-						HRP.Anchored = true
 
 						lookTween.Completed:Wait()
 
@@ -252,13 +247,6 @@ function agent:Run(PATH_FOLDER)
 					-- Continue same level path
 					if FINISHED < #path or folder == PATH_FOLDER then
 						gotoWaypoint()
-					else
-						-- Pre-path
-						local PRE_WAYPOINT = WAYPOINT.Parent.Parent
-						if PRE_WAYPOINT and PRE_WAYPOINT:IsA("BasePart") then
-							print(CHARACTER.Name, "Outter-path")
-							runPath(PRE_WAYPOINT)
-						end
 					end
 				end
 
@@ -270,15 +258,6 @@ function agent:Run(PATH_FOLDER)
 	end)
 
 	coroutine.resume(self.Thread)
-end
-
-function agent:Destroy()
-	clearConnections(self.connections)
-	self.events.Reached:Destroy()
-	self.events.Next:Destroy()
-	if self.Thread then
-		coroutine.close(self.Thread)
-	end
 end
 
 return agent

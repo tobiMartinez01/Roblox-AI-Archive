@@ -87,177 +87,59 @@ function agent:Run(PATH_FOLDER)
 
 		local PATH = self.Path
 
-		local function runPath(folder)		
+		local function runPath(folder)
 			local path = importWaypoints(folder)
 
 			if #path > 0 then
-				local INDEX = 1
-				local LAST_INDEX
+				local INDEX = 0
+				local LAST_INDEX  = 0
 				local FINISHED = 0
-
-				local WAYPOINT = path[INDEX]
-
-				local function gotoWaypoint()
+				local WAYPOINT = path[INDEX] 
+				
+				local function goToWaypoint()
 					-- Next index
 					if self.Randomized then
 						repeat 
 							INDEX = math.random(1, #path)
-						until ((path[INDEX] ~= self.WAYPOINT and INDEX ~= LAST_INDEX) or #path < 3)
+						until (path[INDEX] ~= WAYPOINT and INDEX ~= LAST_INDEX)
 					else
 						INDEX = (INDEX % #path) + 1
 					end
 
-					WAYPOINT = path[INDEX]
-
 					-- Occupied
-					WAYPOINT:SetAttribute("Unavailable", true)
+					LAST_INDEX = INDEX
+					local CURRENT_WAYPOINT = path[INDEX]
+					CURRENT_WAYPOINT:SetAttribute("Unavailable", true)
 
 					-- Yield
 					task.wait(self.Debounce or 0)
 
-					-- [[ RUN ]]
-
-					-- Unanchor to make them be able to move again
-					HRP.Anchored = false
-
 					-- Fire event
-					self.events.Next:Fire(WAYPOINT)
-
-					--Stopping animations
-					if self.INTERACTION then
-						self.INTERACTION:Stop()
-						self.INTERACTION = nil
-					end
-
-					-- Handle exit animation from previous waypoint if available
-					if path[LAST_INDEX] then
-						local LEAVE_ANIMATION = path[LAST_INDEX]:FindFirstChild("Leave")
-						if LEAVE_ANIMATION and LEAVE_ANIMATION.Value then
-							local LEAVE_TRACK = ANIMATOR:LoadAnimation(LEAVE_ANIMATION.Value)
-							LEAVE_TRACK.Looped = false
-							LEAVE_TRACK.Priority = Enum.AnimationPriority.Action2
-							LEAVE_TRACK:Play()
-							LEAVE_TRACK.Stopped:Wait()
-						end
-					end
-
-					-- Connections
-					self.connections.TRAPPED = PATH.Trapped:Connect(function()
-						if self.WAYPOINT then
-							PATH:Run(self.WAYPOINT.Position)
-						end
-					end)
-
-					self.connections.ERROR = PATH.Error:Connect(function()
-						if self.WAYPOINT then
-							PATH:Run(self.WAYPOINT.Position)
-						end
-					end)
-
-					PATH:Run(WAYPOINT.Position)
+					self.events.Next:Fire(CURRENT_WAYPOINT)
+					PATH:Run(CURRENT_WAYPOINT.Position)
 
 					-- Finished
-					self.connections.Reached = PATH.Reached:Connect(function()
+					PATH.Reached:Wait()
 
-						clearConnections(self.connections)
+					-- Overriding values
+					FINISHED+=1
+					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
+					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
+					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false
 
-						-- Overriding values
-						FINISHED+=1
-						LAST_INDEX = INDEX
-						WAYPOINT:SetAttribute("Unavailable", nil)
+					-- Sub-waypoints
+					runPath(CURRENT_WAYPOINT)
 
-						self.Debounce = WAYPOINT:GetAttribute("Debounce") or 0
-						self.Randomized = WAYPOINT:GetAttribute("Randomized") or false
-
-						-- Animation
-						local ATTACHMENT = WAYPOINT:FindFirstChildWhichIsA("Attachment")
-
-						if ATTACHMENT then
-							--[[ STARE FEATURE ]]
-							local ORIGIN = WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
-							local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
-
-							-- Wait until the NPC is in an idle state
-							repeat 
-								RunService.Heartbeat:Wait()
-							until HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing 
-								and HUMANOID:GetState() ~= Enum.HumanoidStateType.Jumping 
-								and HUMANOID:GetState() ~= Enum.HumanoidStateType.Freefall 
-								and HUMANOID.FloorMaterial ~= Enum.Material.Air 
-								and HRP.Velocity.Magnitude < 0.01 
-								and PATH.Idle
-
-							-- Anchor momentarily to avoid disturbance
-							HRP.Anchored = true
-
-							-- Tween rotation toward target direction
-							local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-							local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
-							lookTween:Play()
-
-							--lookTween.Completed:Wait()
-
-							-- Enter animation
-							local ENTER_ANIMATION = WAYPOINT:FindFirstChild("Enter")
-							local ENTER_TRACK
-
-							if ENTER_ANIMATION and ENTER_ANIMATION.Value then
-								ENTER_TRACK = ANIMATOR:LoadAnimation(ENTER_ANIMATION.Value)
-								ENTER_TRACK.Looped = false
-								ENTER_TRACK.Priority = Enum.AnimationPriority.Action2
-								ENTER_TRACK:Play()
-							end
-
-							-- Handle interact animations (choose one at random)
-							local INTERACT_AMIMS = {}
-							local INTERACT_AMIMATIONID
-
-							for _, ANIMATION in pairs(WAYPOINT:GetChildren()) do
-								if ANIMATION:IsA("ObjectValue") and ANIMATION.Name ~= "Enter" and ANIMATION.Name ~= "Leave" then
-									table.insert(INTERACT_AMIMS, ANIMATION)
-								end
-							end
-
-							if #INTERACT_AMIMS > 0 then
-								local CHOSEN = INTERACT_AMIMS[math.random(1, #INTERACT_AMIMS)]
-								if CHOSEN.Value then
-									INTERACT_AMIMATIONID = CHOSEN.Value.AnimationId
-									self.INTERACTION = ANIMATOR:LoadAnimation(CHOSEN.Value)
-									self.INTERACTION.Priority = Enum.AnimationPriority.Action
-								end
-							end
-
-							-- Fire the Reached event with optional interact animation id
-							self.events.Reached:Fire(WAYPOINT, INTERACT_AMIMATIONID)
-
-							-- Yields
-							if self.INTERACTION then
-								if ENTER_TRACK then
-									ENTER_TRACK.Stopped:Wait()
-								end
-
-								self.INTERACTION:Play()
-
-								if not self.INTERACTION.Looped then
-									self.INTERACTION.Stopped:Wait()
-								end
-							end
-						end
-
-						-- Sub-waypoints
-						runPath(WAYPOINT)
-
-						-- Continue same level path
-						if FINISHED < #path or folder == PATH_FOLDER then
-							gotoWaypoint()
-						end
-					end)
+					-- Continue same level path
+					if FINISHED < #path or folder == PATH_FOLDER then
+						goToWaypoint()
+					end
 				end
-
-				gotoWaypoint()
+				
+				goToWaypoint()
 			end
 		end
-
+		
 		runPath(PATH_FOLDER)
 	end)
 

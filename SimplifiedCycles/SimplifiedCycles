@@ -21,6 +21,8 @@ local function findAnimationTrackInTable(t, animId)
 		if v.Animation.AnimationId == animId then
 			return v
 		end
+
+		findAnimationTrackInTable(v, animId)
 	end
 
 	return false
@@ -102,14 +104,10 @@ function agent:Run(PATH_FOLDER)
 
 		-- Load animation
 		for i, objValue in pairs(PATH_FOLDER:GetDescendants()) do
-			if objValue:IsA("ObjectValue") then
-				if objValue.Value then
-					table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value.AnimationId))
-				end
+			if objValue:IsA("ObjectValue") and objValue.Value then
+				table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value))
 			end
 		end
-		
-		print(CHARACTER.Name)
 
 		local function runPath(folder)
 			local path = importWaypoints(folder)
@@ -177,13 +175,13 @@ function agent:Run(PATH_FOLDER)
 					-- [[ FINISHED ]]
 					PATH.Reached:Wait()
 
-					clearConnections(self.connections)
-					
 					-- Overriding values
 					FINISHED+=1
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
 					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false
+
+					clearConnections(self.connections)
 
 					-- Animations
 					local ATTACHMENT = CURRENT_WAYPOINT:FindFirstChildWhichIsA("Attachment")

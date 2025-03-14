@@ -8,7 +8,7 @@ end
 local function importWaypoints(folder)
 	local waypoints = {}
 	for _, waypoint in ipairs(folder:GetChildren()) do
-		if waypoint:IsA("BasePart") then
+		if waypoint:IsA("BasePart") and not waypoint:GetAttribute("Unavailable") then
 			table.insert(waypoints, waypoint)
 		end
 	end
@@ -103,15 +103,13 @@ function agent:Run(PATH_FOLDER)
 					if self.Randomized then
 						local available = {}
 						for i, wp in ipairs(path) do
-							if not wp:GetAttribute("Unavailable") and wp ~= WAYPOINT and i ~= LAST_INDEX then
+							if wp ~= WAYPOINT and i ~= LAST_INDEX then
 								table.insert(available, i)
 							end
 						end
 						INDEX = available[#available > 0 and math.random(1, #available) or 1]
 					else
-						repeat
-							INDEX = (INDEX % #path) + 1
-						until not path[INDEX]:GetAttribute("Unavailable")
+						INDEX = (INDEX % #path) + 1
 					end
 
 					WAYPOINT = path[INDEX]

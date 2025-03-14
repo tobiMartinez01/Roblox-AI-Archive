@@ -70,7 +70,7 @@ function agent.new(character, costs)
 		AgentCanJump = true,
 		AgentCanClimb = true,
 		Costs = costs,
-		WaypointSpacing = 8,
+		--WaypointSpacing = 8,
 		PathSettings = {
 			SupportPartialPath = true
 		}

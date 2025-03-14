@@ -93,7 +93,7 @@ function agent:Run(PATH_FOLDER)
 
 			if #path > 0 then
 				local INDEX = 1
-				local LAST_INDEX
+				local LAST_INDEX = 0
 				local FINISHED = 0
 
 				local WAYPOINT = path[INDEX]
@@ -253,6 +253,7 @@ function agent:Run(PATH_FOLDER)
 					if FINISHED < #path or folder == PATH_FOLDER then
 						gotoWaypoint()
 					else
+						-- Pre-path
 						local PRE_WAYPOINT = WAYPOINT.Parent.Parent
 						if PRE_WAYPOINT and PRE_WAYPOINT:IsA("BasePart") then
 							print(CHARACTER.Name, "Outter-path")

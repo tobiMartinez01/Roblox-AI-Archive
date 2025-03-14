@@ -147,12 +147,12 @@ function agent:Run(PATH_FOLDER)
 							LEAVE_TRACK.Stopped:Wait()
 						end
 					end
-					
+
 					-- Connections
 					self.connections.TRAPPED = PATH.Trapped:Connect(function()
 						PATH:Run(WAYPOINT.Position)
 					end)
-					
+
 					self.connections.ERROR = PATH.Error:Connect(function()
 						PATH:Run(WAYPOINT.Position)
 					end)
@@ -162,7 +162,7 @@ function agent:Run(PATH_FOLDER)
 
 					-- Wait until finished
 					PATH.Reached:Wait()
-					
+
 					clearConnections(self.connections)
 
 					-- Overriding values
@@ -254,6 +254,10 @@ function agent:Run(PATH_FOLDER)
 					-- Continue same level path
 					if FINISHED < #path or folder == PATH_FOLDER then
 						gotoWaypoint()
+					else
+						if WAYPOINT.Parent then
+							runPath(WAYPOINT.Parent)
+						end
 					end
 				end
 

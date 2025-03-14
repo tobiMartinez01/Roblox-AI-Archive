@@ -21,8 +21,6 @@ local function findAnimationTrackInTable(t, animId)
 		if v.Animation.AnimationId == animId then
 			return v
 		end
-
-		findAnimationTrackInTable(v, animId)
 	end
 
 	return false
@@ -104,10 +102,14 @@ function agent:Run(PATH_FOLDER)
 
 		-- Load animation
 		for i, objValue in pairs(PATH_FOLDER:GetDescendants()) do
-			if objValue:IsA("ObjectValue") and objValue.Value then
-				table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value))
+			if objValue:IsA("ObjectValue") then
+				if objValue.Value then
+					table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value.AnimationId))
+				end
 			end
 		end
+		
+		print(CHARACTER.Name)
 
 		local function runPath(folder)
 			local path = importWaypoints(folder)
@@ -146,7 +148,7 @@ function agent:Run(PATH_FOLDER)
 					if path[LAST_INDEX] then
 						local LEAVE_ANIMATION = path[LAST_INDEX]:FindFirstChild("Leave")
 						if LEAVE_ANIMATION and LEAVE_ANIMATION.Value then
-							local LEAVE_TRACK = findAnimationTrackInTable(animationTracks, LEAVE_ANIMATION.Value)
+							local LEAVE_TRACK = findAnimationTrackInTable(animationTracks, LEAVE_ANIMATION.Value.AnimationId)
 							LEAVE_TRACK.Looped = false
 							LEAVE_TRACK.Priority = Enum.AnimationPriority.Action2
 							LEAVE_TRACK:Play()
@@ -175,13 +177,13 @@ function agent:Run(PATH_FOLDER)
 					-- [[ FINISHED ]]
 					PATH.Reached:Wait()
 
+					clearConnections(self.connections)
+					
 					-- Overriding values
 					FINISHED+=1
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
 					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false
-
-					clearConnections(self.connections)
 
 					-- Animations
 					local ATTACHMENT = CURRENT_WAYPOINT:FindFirstChildWhichIsA("Attachment")
@@ -216,7 +218,7 @@ function agent:Run(PATH_FOLDER)
 						local ENTER_TRACK
 
 						if ENTER_ANIMATION and ENTER_ANIMATION.Value then
-							ENTER_TRACK = findAnimationTrackInTable(animationTracks, ENTER_ANIMATION.Value)
+							ENTER_TRACK = findAnimationTrackInTable(animationTracks, ENTER_ANIMATION.Value.AnimationId)
 							ENTER_TRACK.Looped = false
 							ENTER_TRACK.Priority = Enum.AnimationPriority.Action2
 							ENTER_TRACK:Play()

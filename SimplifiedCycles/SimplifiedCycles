@@ -21,10 +21,10 @@ local function findAnimationTrackInTable(t, animId)
 		if v.Animation.AnimationId == animId then
 			return v
 		end
-		
+
 		findAnimationTrackInTable(v, animId)
 	end
-	
+
 	return false
 end
 
@@ -99,9 +99,9 @@ function agent:Run(PATH_FOLDER)
 		local ANIMATOR = HUMANOID.Animator
 
 		local PATH = self.Path
-		
+
 		local animationTracks = {}
-		
+
 		-- Load animation
 		for i, objValue in pairs(PATH_FOLDER:GetDescendants()) do
 			if objValue:IsA("ObjectValue") and objValue.Value then
@@ -135,7 +135,7 @@ function agent:Run(PATH_FOLDER)
 
 					-- Yield
 					task.wait(self.Debounce or 0)
-					
+
 					--Stopping animations
 					if self.INTERACTION then
 						self.INTERACTION:Stop()
@@ -156,23 +156,19 @@ function agent:Run(PATH_FOLDER)
 
 					-- Fire event
 					self.events.Next:Fire(CURRENT_WAYPOINT)
-					
+
 					-- Connections
 					self.connections.TRAPPED = PATH.Trapped:Connect(function()
-						if self.WAYPOINT then
-							PATH:Run(self.WAYPOINT.Position)
-						end
+						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
 
 					self.connections.ERROR = PATH.Error:Connect(function()
-						if self.WAYPOINT then
-							PATH:Run(self.WAYPOINT.Position)
-						end
+						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
-					
+
 					-- Unanchor to make them be able to move again
 					HRP.Anchored = false
-					
+
 					-- [[ RUN ]]
 					PATH:Run(CURRENT_WAYPOINT.Position)
 
@@ -184,15 +180,15 @@ function agent:Run(PATH_FOLDER)
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
 					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false
-					
+
 					clearConnections(self.connections)
-					
+
 					-- Animations
-					local ATTACHMENT = WAYPOINT:FindFirstChildWhichIsA("Attachment")
+					local ATTACHMENT = CURRENT_WAYPOINT:FindFirstChildWhichIsA("Attachment")
 
 					if ATTACHMENT then
 						--[[ STARE FEATURE ]]
-						local ORIGIN = WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+						local ORIGIN = CURRENT_WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
 						local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
 
 						-- Wait until the NPC is in an idle state
@@ -214,23 +210,23 @@ function agent:Run(PATH_FOLDER)
 						lookTween:Play()
 
 						lookTween.Completed:Wait()
-						
+
 						-- [[ ENTER ANIMATION ]]
-						local ENTER_ANIMATION = WAYPOINT:FindFirstChild("Enter")
+						local ENTER_ANIMATION = CURRENT_WAYPOINT:FindFirstChild("Enter")
 						local ENTER_TRACK
-						
+
 						if ENTER_ANIMATION and ENTER_ANIMATION.Value then
 							ENTER_TRACK = findAnimationTrackInTable(animationTracks, ENTER_ANIMATION.Value)
 							ENTER_TRACK.Looped = false
 							ENTER_TRACK.Priority = Enum.AnimationPriority.Action2
 							ENTER_TRACK:Play()
 						end
-						
+
 						-- Handle interact animations (choose one at random)
 						local INTERACT_AMIMS = {}
 						local INTERACT_AMIMATIONID
 
-						for _, ANIMATION in pairs(WAYPOINT:GetChildren()) do
+						for _, ANIMATION in pairs(CURRENT_WAYPOINT:GetChildren()) do
 							if ANIMATION:IsA("ObjectValue") and ANIMATION.Name ~= "Enter" and ANIMATION.Name ~= "Leave" then
 								table.insert(INTERACT_AMIMS, ANIMATION)
 							end
@@ -246,7 +242,7 @@ function agent:Run(PATH_FOLDER)
 						end
 
 						-- Fire the Reached event with optional interact animation id
-						self.events.Reached:Fire(WAYPOINT, INTERACT_AMIMATIONID)
+						self.events.Reached:Fire(CURRENT_WAYPOINT, INTERACT_AMIMATIONID)
 
 						-- Yields
 						if self.INTERACTION then

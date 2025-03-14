@@ -127,7 +127,6 @@ function agent:Run(PATH_FOLDER)
 					end
 
 					-- Occupied
-					LAST_INDEX = INDEX
 					local CURRENT_WAYPOINT = path[INDEX]
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", true)
 
@@ -175,6 +174,7 @@ function agent:Run(PATH_FOLDER)
 
 					-- Overriding values
 					FINISHED+=1
+					LAST_INDEX = INDEX
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
 					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false

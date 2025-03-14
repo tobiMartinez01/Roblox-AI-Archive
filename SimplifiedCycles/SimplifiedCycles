@@ -87,6 +87,7 @@ function agent:Run(PATH_FOLDER)
 		local HUMANOID = CHARACTER.Humanoid
 		local ANIMATOR = HUMANOID.Animator
 
+		local PATH = self.Path
 		local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 
 		local function runPath(folder)		

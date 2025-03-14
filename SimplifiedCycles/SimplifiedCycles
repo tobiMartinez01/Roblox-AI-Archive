@@ -123,7 +123,7 @@ function agent:Run(PATH_FOLDER)
 					if self.Randomized then
 						repeat 
 							INDEX = math.random(1, #path)
-						until (path[INDEX] ~= WAYPOINT and INDEX ~= LAST_INDEX) or #path < 3
+						until (path[INDEX] ~= WAYPOINT and INDEX ~= LAST_INDEX)
 					else
 						INDEX = (INDEX % #path) + 1
 					end

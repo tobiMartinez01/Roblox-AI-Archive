@@ -77,9 +77,9 @@ function agent.new(character, costs)
 	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
-
+	
 	local ANIMATOR = character.Humanoid:FindFirstChildWhichIsA("Animator")
-
+	
 	self.animationTracks = {}
 
 	-- Load animation
@@ -178,10 +178,9 @@ function agent:Run(PATH_FOLDER)
 					FINISHED+=1
 					LAST_INDEX = INDEX
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
-					
 					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false
-					
+
 					clearConnections(self.connections)
 
 					-- Animations
@@ -211,8 +210,6 @@ function agent:Run(PATH_FOLDER)
 						lookTween:Play()
 
 						lookTween.Completed:Wait()
-						
-						HRP.Anchored = false
 
 						-- [[ ENTER ANIMATION ]]
 						local ENTER_ANIMATION = CURRENT_WAYPOINT:FindFirstChild("Enter")

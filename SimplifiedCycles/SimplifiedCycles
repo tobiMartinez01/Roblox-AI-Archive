@@ -94,7 +94,7 @@ function agent:Run(PATH_FOLDER)
 		local CHARACTER = self.Character
 		local HRP = CHARACTER.HumanoidRootPart
 		local HUMANOID = CHARACTER.Humanoid
-		local ANIMATOR = HUMANOID.Animator
+		local ANIMATOR = HUMANOID:FindFirstChildWhichIsA("Animator")
 
 		local PATH = self.Path
 

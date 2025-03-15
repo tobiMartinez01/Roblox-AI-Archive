@@ -103,7 +103,9 @@ function agent:Run(PATH_FOLDER)
 		-- Load animation
 		for i, objValue in pairs(PATH_FOLDER:GetDescendants()) do
 			if objValue:IsA("ObjectValue") and objValue.Value then
-				table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value))
+				if objValue.Value.AnimationId then
+					table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value))
+				end
 			end
 		end
 

@@ -77,9 +77,9 @@ function agent.new(character, costs)
 	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
-	
+
 	local ANIMATOR = character.Humanoid:FindFirstChildWhichIsA("Animator")
-	
+
 	self.animationTracks = {}
 
 	-- Load animation
@@ -158,10 +158,12 @@ function agent:Run(PATH_FOLDER)
 
 					-- Connections
 					self.connections.TRAPPED = PATH.Trapped:Connect(function()
+						PATH:Stop()
 						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
 
 					self.connections.ERROR = PATH.Error:Connect(function()
+						PATH:Stop()
 						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
 

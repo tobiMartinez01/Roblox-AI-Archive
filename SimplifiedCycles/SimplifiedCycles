@@ -77,6 +77,15 @@ function agent.new(character, costs)
 	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
+	
+	self.animationTracks = {}
+
+	-- Load animation
+	for i, anim in pairs(game.ReplicatedFirst.NPC_Animations:GetDescendants()) do
+		if anim:IsA("Animation") then
+			table.insert(self.animationTracks, ANIMATOR:LoadAnimation(anim))
+		end
+	end
 
 	character.Humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(function()
 		self.Path.Speed = character.Humanoid.WalkSpeed
@@ -97,17 +106,6 @@ function agent:Run(PATH_FOLDER)
 		local ANIMATOR = HUMANOID:FindFirstChildWhichIsA("Animator")
 
 		local PATH = self.Path
-
-		local animationTracks = {}
-
-		-- Load animation
-		for i, objValue in pairs(PATH_FOLDER:GetDescendants()) do
-			if objValue:IsA("ObjectValue") and objValue.Value then
-				if objValue.Value:IsA("Animation") then
-					table.insert(animationTracks, ANIMATOR:LoadAnimation(objValue.Value))
-				end
-			end
-		end
 
 		local function runPath(folder)
 			local path = importWaypoints(folder)
@@ -145,7 +143,7 @@ function agent:Run(PATH_FOLDER)
 					if path[LAST_INDEX] then
 						local LEAVE_ANIMATION = path[LAST_INDEX]:FindFirstChild("Leave")
 						if LEAVE_ANIMATION and LEAVE_ANIMATION.Value then
-							local LEAVE_TRACK = findAnimationTrackInTable(animationTracks, LEAVE_ANIMATION.Value.AnimationId)
+							local LEAVE_TRACK = findAnimationTrackInTable(self.animationTracks, LEAVE_ANIMATION.Value.AnimationId)
 							LEAVE_TRACK.Looped = false
 							LEAVE_TRACK.Priority = Enum.AnimationPriority.Action2
 							LEAVE_TRACK:Play()
@@ -216,7 +214,7 @@ function agent:Run(PATH_FOLDER)
 						local ENTER_TRACK
 
 						if ENTER_ANIMATION and ENTER_ANIMATION.Value then
-							ENTER_TRACK = findAnimationTrackInTable(animationTracks, ENTER_ANIMATION.Value.AnimationId)
+							ENTER_TRACK = findAnimationTrackInTable(self.animationTracks, ENTER_ANIMATION.Value.AnimationId)
 							ENTER_TRACK.Looped = false
 							ENTER_TRACK.Priority = Enum.AnimationPriority.Action2
 							ENTER_TRACK:Play()
@@ -236,7 +234,7 @@ function agent:Run(PATH_FOLDER)
 							local CHOSEN = INTERACT_AMIMS[math.random(1, #INTERACT_AMIMS)]
 							if CHOSEN.Value then
 								INTERACT_AMIMATIONID = CHOSEN.Value.AnimationId
-								self.INTERACTION = findAnimationTrackInTable(animationTracks, INTERACT_AMIMATIONID)
+								self.INTERACTION = findAnimationTrackInTable(self.animationTracks, INTERACT_AMIMATIONID)
 								self.INTERACTION.Priority = Enum.AnimationPriority.Action
 							end
 						end

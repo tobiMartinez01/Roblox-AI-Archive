@@ -78,6 +78,8 @@ function agent.new(character, costs)
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
 	
+	local ANIMATOR = character.Humanoid:FindFirstChildWhichIsA("Animator")
+	
 	self.animationTracks = {}
 
 	-- Load animation

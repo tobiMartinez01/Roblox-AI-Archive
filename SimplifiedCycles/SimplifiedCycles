@@ -77,9 +77,9 @@ function agent.new(character, costs)
 	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
-
+	
 	local ANIMATOR = character.Humanoid:FindFirstChildWhichIsA("Animator")
-
+	
 	self.animationTracks = {}
 
 	-- Load animation
@@ -119,12 +119,6 @@ function agent:Run(PATH_FOLDER)
 				local WAYPOINT = path[INDEX] 
 
 				local function goToWaypoint()
-					if ANIMATOR then
-						for _, track in ipairs(self.animationTracks) do
-							track:Stop()  -- Stop all tracks to prevent overlap
-						end
-					end
-					
 					-- Next index
 					if self.Randomized then
 						repeat 
@@ -238,15 +232,12 @@ function agent:Run(PATH_FOLDER)
 							end
 						end
 
-						-- In the interact animation section:
 						if #INTERACT_AMIMS > 0 then
 							local CHOSEN = INTERACT_AMIMS[math.random(1, #INTERACT_AMIMS)]
 							if CHOSEN.Value then
 								INTERACT_AMIMATIONID = CHOSEN.Value.AnimationId
-								local INTERACT_TRACK = findAnimationTrackInTable(self.animationTracks, INTERACT_AMIMATIONID)
-								INTERACT_TRACK.Looped = false  -- Force non-looped playback
-								INTERACT_TRACK:Play()
-								INTERACT_TRACK.Stopped:Wait()  -- Wait for completion regardless of loop status
+								self.INTERACTION = findAnimationTrackInTable(self.animationTracks, INTERACT_AMIMATIONID)
+								self.INTERACTION.Priority = Enum.AnimationPriority.Action
 							end
 						end
 

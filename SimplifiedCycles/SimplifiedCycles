@@ -30,7 +30,7 @@ local function clearConnections(connections)
 	for key, conn in pairs(connections) do
 		if conn then
 			conn:Disconnect()
-			connections[key] = nil
+			conn = nil
 		end
 	end
 end
@@ -158,12 +158,10 @@ function agent:Run(PATH_FOLDER)
 
 					-- Connections
 					self.connections.TRAPPED = PATH.Trapped:Connect(function()
-						PATH:Stop()
 						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
 
 					self.connections.ERROR = PATH.Error:Connect(function()
-						PATH:Stop()
 						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
 
@@ -190,28 +188,26 @@ function agent:Run(PATH_FOLDER)
 
 					if ATTACHMENT then
 						--[[ STARE FEATURE ]]
-						local ORIGIN = CURRENT_WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
-						local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+						--local ORIGIN = CURRENT_WAYPOINT.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
+						--local LOOK_AT = ATTACHMENT.WorldCFrame.Position * Vector3.new(1, 0, 1) + HRP.Position * Vector3.new(0, 1, 0)
 
-						-- Wait until the NPC is in an idle state
-						repeat 
-							RunService.Heartbeat:Wait()
-						until HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing 
-							and HUMANOID:GetState() ~= Enum.HumanoidStateType.Jumping 
-							and HUMANOID:GetState() ~= Enum.HumanoidStateType.Freefall 
-							and HUMANOID.FloorMaterial ~= Enum.Material.Air 
-							and HRP.Velocity.Magnitude < 0.01
-							and PATH.Idle
+						---- Wait until the NPC is in an idle state
+						--repeat 
+						--	RunService.Heartbeat:Wait()
+						--until HUMANOID:GetState() ~= Enum.HumanoidStateType.Climbing 
+						--	and HUMANOID:GetState() ~= Enum.HumanoidStateType.Jumping 
+						--	and HUMANOID:GetState() ~= Enum.HumanoidStateType.Freefall 
+						--	and HUMANOID.FloorMaterial ~= Enum.Material.Air 
+						--	and HRP.Velocity.Magnitude < 0.01
+						--	and PATH.Idle
 
-						-- Anchor momentarily to avoid disturbance
-						HRP.Anchored = true
+						---- Anchor momentarily to avoid disturbance
+						--HRP.Anchored = true
 
-						-- Tween rotation toward target direction
-						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-						local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
-						lookTween:Play()
-
-						lookTween.Completed:Wait()
+						---- Tween rotation toward target direction
+						--local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+						--local lookTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(ORIGIN, LOOK_AT)})
+						--lookTween:Play()
 
 						-- [[ ENTER ANIMATION ]]
 						local ENTER_ANIMATION = CURRENT_WAYPOINT:FindFirstChild("Enter")

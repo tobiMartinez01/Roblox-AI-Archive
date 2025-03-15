@@ -26,15 +26,17 @@ local function findAnimationTrackInTable(t, animId)
 	return false
 end
 
+-- Modify clearConnections to handle nested tables if needed
 local function clearConnections(connections)
-	for key, conn in pairs(connections) do
-		if conn then
+	for _, conn in pairs(connections) do
+		if type(conn) == "table" then
+			clearConnections(conn)  -- Recursively clear nested connections
+		elseif conn and typeof(conn.Disconnect) == "function" then
 			conn:Disconnect()
-			connections[key] = nil
 		end
 	end
+	connections = {}  -- Reset the table
 end
-
 -----------------------------------------------------------
 -- Agent Module
 local agent = {}
@@ -77,9 +79,9 @@ function agent.new(character, costs)
 	self.Path.Timeout = true
 	self.Path.Partial = true
 	self.Path.Speed = character.Humanoid.WalkSpeed
-	
+
 	local ANIMATOR = character.Humanoid:FindFirstChildWhichIsA("Animator")
-	
+
 	self.animationTracks = {}
 
 	-- Load animation
@@ -157,6 +159,8 @@ function agent:Run(PATH_FOLDER)
 					self.events.Next:Fire(CURRENT_WAYPOINT)
 
 					-- Connections
+					clearConnections(self.connections)
+					
 					self.connections.TRAPPED = PATH.Trapped:Connect(function()
 						PATH:Run(CURRENT_WAYPOINT.Position)
 					end)
@@ -180,8 +184,6 @@ function agent:Run(PATH_FOLDER)
 					CURRENT_WAYPOINT:SetAttribute("Unavailable", nil)
 					self.Debounce = CURRENT_WAYPOINT:GetAttribute("Debounce") or 0
 					self.Randomized = CURRENT_WAYPOINT:GetAttribute("Randomized") or false
-
-					clearConnections(self.connections)
 
 					-- Animations
 					local ATTACHMENT = CURRENT_WAYPOINT:FindFirstChildWhichIsA("Attachment")
@@ -210,6 +212,8 @@ function agent:Run(PATH_FOLDER)
 						lookTween:Play()
 
 						lookTween.Completed:Wait()
+						
+						HRP.Anchored = false
 
 						-- [[ ENTER ANIMATION ]]
 						local ENTER_ANIMATION = CURRENT_WAYPOINT:FindFirstChild("Enter")

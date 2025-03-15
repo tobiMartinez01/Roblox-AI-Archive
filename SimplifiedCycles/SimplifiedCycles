@@ -26,17 +26,15 @@ local function findAnimationTrackInTable(t, animId)
 	return false
 end
 
--- Modify clearConnections to handle nested tables if needed
 local function clearConnections(connections)
-	for _, conn in pairs(connections) do
-		if type(conn) == "table" then
-			clearConnections(conn)  -- Recursively clear nested connections
-		elseif conn and typeof(conn.Disconnect) == "function" then
+	for key, conn in pairs(connections) do
+		if conn then
 			conn:Disconnect()
+			connections[key] = nil
 		end
 	end
-	connections = {}  -- Reset the table
 end
+
 -----------------------------------------------------------
 -- Agent Module
 local agent = {}

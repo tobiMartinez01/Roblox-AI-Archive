@@ -28,6 +28,8 @@ local ALIGN_ORIENTATION = self.IsCarrying_Orientation
 --//Player references
 local LOCAL_PLAYER = Players.LocalPlayer
 local PLAYER_SCRIPTS = LOCAL_PLAYER.PlayerScripts
+local PLAYER_GUI = LOCAL_PLAYER.PlayerGui
+local USER_INTERFACES = PLAYER_GUI:WaitForChild("UIs")
 local MOUSE = LOCAL_PLAYER:GetMouse()
 
 --//Misc references
@@ -86,16 +88,36 @@ local function changeMouseIcon(id)
 	end
 end
 
+local function comment()
+	--//Comment
+	if not USER_INTERFACES.desc.Visible then
+		if CARRY_OBJECT:GetAttribute("description") then
+			USER_INTERFACES.desc.Visible = true
+			USER_INTERFACES.desc.Text = CARRY_OBJECT:GetAttribute("description") 
+		end
+	end
+end
+
+local function removeComment()
+	if USER_INTERFACES.desc.Visible then
+		USER_INTERFACES.desc.Visible = false
+	end
+end
+
 --//Highlighting carriable objects
 local function HIGHLIGHT()
-	SELECTION.Adornee = CARRY_OBJECT
-	LAST_CARRY_OBJECT = CARRY_OBJECT
+	if not SELECTION.Adornee then
+		SELECTION.Adornee = CARRY_OBJECT
+		LAST_CARRY_OBJECT = CARRY_OBJECT
+	end
 end
 
 --//Un-highlight
 local function UN_HIGHLIGHT()
-	SELECTION.Adornee = nil
-	LAST_CARRY_OBJECT = nil
+	if SELECTION.Adornee then
+		SELECTION.Adornee = nil
+		LAST_CARRY_OBJECT = nil
+	end
 end
 
 local function IS_BEING_CARRIED(obj)
@@ -135,25 +157,28 @@ coroutine.wrap(function()
 							HIGHLIGHT()
 						end
 						
+						--//Comment
+						comment()
+
 						--//Change mouse icon to open hand
 						changeMouseIcon("rbxassetid://382763043")
-						
+
 						--//Is success
 						continue
 					end
 				end
 			end
 
-			--//Un-assigning if fails
-			if SELECTION.Adornee then
-				--//Un-highlight
-				UN_HIGHLIGHT()
-				
-				--//Change mouse icon to default
-				changeMouseIcon("rbxassetid://6001676828")
-			end
+			--[[ FAIL ]]
+			--//Un-highlight
+			removeComment()
+			UN_HIGHLIGHT()
+
+			--//Change mouse icon to default
+			changeMouseIcon("rbxassetid://6001676828")
 		else
 			--//Change mouse icon to dragging hand
+			removeComment()
 			changeMouseIcon("rbxassetid://382762994")
 		end
 	end
@@ -162,14 +187,38 @@ end)()
 --//Set mouse icon
 UserInputService.MouseIcon = "rbxassetid://6001676828"
 
---//Input start
-UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
-	--Not receiving inputs if the player is chatting
-	if CHATTING then
-		return
+function rotateStart()
+	if CARRYING then
+		CONTROLS:Disable()
+		ROTATING = true
 	end
+end
 
-	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 and not CARRYING and CARRY_OBJECT and CARRY_PART then
+function rotateEnd()
+	CONTROLS:Enable()
+	ROTATING = false
+end
+
+function dragEnd()
+	if CARRYING then
+		--//Debounce
+		repeat
+			task.wait()
+		until tick() - LAST_TICK >= DEBOUNCE
+
+		rotateEnd()
+
+		CARRYING = false
+
+		ALIGN_POS.Parent = self
+		ALIGN_ORIENTATION.Parent = self
+
+		CARRY_EVENT:InvokeServer(false, CARRY_PART)
+	end
+end
+
+function dragStart()
+	if not CARRYING and CARRY_OBJECT and CARRY_PART then
 		--//Calculating if the player is close enough
 		local CAM_POS = CURRENT_CAM.CFrame.Position
 		local CARRY_PART_POS = CARRY_PART.Position
@@ -206,7 +255,7 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 				if CARRY_PART then
 					local NEW_CAM_POS = CURRENT_CAM.CFrame.Position
 					local NEW_CARRY_PART_POS = CARRY_PART.Position
-					
+
 					local NEW_DISTANCE = (NEW_CAM_POS - NEW_CARRY_PART_POS).Magnitude
 
 					if CARRYING and NEW_DISTANCE <= MAX_DISTANCE then
@@ -237,20 +286,32 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 
 						ALIGN_POS.Position = CURRENT_CAM_CFRAME.Position + CURRENT_CAM_CFRAME.LookVector * MIN_DISTANCE
 						ALIGN_ORIENTATION.CFrame = CURRENT_CAM_CFRAME * INITIAL_CAM_CFRAME:ToObjectSpace(INITIAL_PART_CFRAME)
-						
+
 						return
 					end
 				end
-				
+
 				--//Disconnect if fail
 				NEW_THREAD:Disconnect()
+				dragEnd()
 			end)
 		end
 	end
+end
 
-	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 and CARRYING then
-		CONTROLS:Disable()
-		ROTATING = true
+--//Input start
+UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
+	--Not receiving inputs if the player is chatting
+	if CHATTING then
+		return
+	end
+
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragStart()
+	end
+
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 then
+		rotateStart()
 	end
 end)
 
@@ -261,25 +322,11 @@ UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
 		return
 	end
 
-	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 and CARRYING then
-		--//Debounce
-		repeat
-			task.wait()
-		until tick() - LAST_TICK >= DEBOUNCE
-
-		CONTROLS:Enable()
-		ROTATING = false
-
-		CARRYING = false
-
-		ALIGN_POS.Parent = self
-		ALIGN_ORIENTATION.Parent = self
-
-		CARRY_EVENT:InvokeServer(false, CARRY_PART)
+	if INPUT.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragEnd()
 	end
 
 	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 then
-		CONTROLS:Enable()
-		ROTATING = false
+		rotateEnd()
 	end
 end)

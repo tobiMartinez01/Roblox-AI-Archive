@@ -30,6 +30,9 @@ local LOCAL_PLAYER = Players.LocalPlayer
 local PLAYER_SCRIPTS = LOCAL_PLAYER.PlayerScripts
 local PLAYER_GUI = LOCAL_PLAYER.PlayerGui
 local USER_INTERFACES = PLAYER_GUI:WaitForChild("UIs")
+
+USER_INTERFACES.Enabled = true
+
 local MOUSE = LOCAL_PLAYER:GetMouse()
 
 --//Misc references

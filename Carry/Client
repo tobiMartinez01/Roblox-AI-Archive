@@ -109,18 +109,14 @@ end
 
 --//Highlighting carriable objects
 local function HIGHLIGHT()
-	if not SELECTION.Adornee then
-		SELECTION.Adornee = CARRY_OBJECT
-		LAST_CARRY_OBJECT = CARRY_OBJECT
-	end
+	SELECTION.Adornee = CARRY_OBJECT
+	LAST_CARRY_OBJECT = CARRY_OBJECT
 end
 
 --//Un-highlight
 local function UN_HIGHLIGHT()
-	if SELECTION.Adornee then
-		SELECTION.Adornee = nil
-		LAST_CARRY_OBJECT = nil
-	end
+	SELECTION.Adornee = nil
+	LAST_CARRY_OBJECT = nil
 end
 
 local function IS_BEING_CARRIED(obj)
@@ -154,17 +150,16 @@ coroutine.wrap(function()
 					local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
 
 					if DISTANCE <= MIN_DISTANCE then
-						--//Highlight
 						if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
-							--//This could prevent unnecessary value changes
+							--//Highlight
 							HIGHLIGHT()
-						end
-						
-						--//Comment
-						comment()
+							
+							--//Comment
+							comment()
 
-						--//Change mouse icon to open hand
-						changeMouseIcon("rbxassetid://382763043")
+							--//Change mouse icon to open hand
+							changeMouseIcon("rbxassetid://382763043")
+						end
 
 						--//Is success
 						continue

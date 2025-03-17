@@ -42,12 +42,17 @@ local KEYCODE = Enum.KeyCode
 --//Functions
 local function findCarriable(PART)
 	local CURRENT = PART
+	
+	local OBJ = nil
+	local PRIMARY_PART = nil
 
 	if PART:FindFirstChild("CarryPoint") then
 		while CURRENT do
 			if CURRENT:IsA("Model") then
 				if CURRENT.PrimaryPart == PART then
-					return CURRENT, CURRENT.PrimaryPart
+					OBJ = CURRENT
+					PRIMARY_PART = CURRENT.PrimaryPart
+					break
 				end
 			end
 
@@ -55,12 +60,17 @@ local function findCarriable(PART)
 			CURRENT = CURRENT:FindFirstAncestorWhichIsA("Model")
 		end
 
-		return PART, PART
+		if not OBJ then
+			OBJ = PART
+			PRIMARY_PART = PART
+		end
 	else
 		while CURRENT do
 			if CURRENT:IsA("Model") then
 				if CURRENT.PrimaryPart and CURRENT.PrimaryPart:FindFirstChild("CarryPoint") then
-					return CURRENT, CURRENT.PrimaryPart 
+					OBJ = CURRENT
+					PRIMARY_PART = CURRENT.PrimaryPart
+					break
 				end
 			end
 
@@ -69,7 +79,7 @@ local function findCarriable(PART)
 		end
 	end
 
-	return nil, nil
+	return OBJ, PRIMARY_PART
 end
 
 --//Dragging references
@@ -145,6 +155,7 @@ coroutine.wrap(function()
 			if TARGET then
 				--//If model is carriable
 				CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
+				
 				if CARRY_OBJECT then
 					--//Checking distance
 					local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
@@ -156,28 +167,29 @@ coroutine.wrap(function()
 							
 							--//Comment
 							comment()
-
-							--//Change mouse icon to open hand
-							changeMouseIcon("rbxassetid://382763043")
 						end
+						
+						--//Change mouse icon to open hand
+						changeMouseIcon("rbxassetid://382763043")
 
-						--//Is success
+						--[[ SUCCESS ]]
 						continue
 					end
 				end
 			end
 
 			--[[ FAIL ]]
+			--//Change mouse icon to default
+			changeMouseIcon("rbxassetid://6001676828")
+			
 			--//Un-highlight
 			removeComment()
 			UN_HIGHLIGHT()
-
-			--//Change mouse icon to default
-			changeMouseIcon("rbxassetid://6001676828")
 		else
 			--//Change mouse icon to dragging hand
-			removeComment()
 			changeMouseIcon("rbxassetid://382762994")
+			
+			removeComment()
 		end
 	end
 end)()

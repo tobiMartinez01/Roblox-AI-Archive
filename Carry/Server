@@ -1,16 +1,44 @@
-local events = game.ReplicatedStorage.Events
-local carry_event = events.Carry
+-- [[ SERVICES ]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Events = ReplicatedStorage.Events
 
-local function HasAlignPosition(Object)
-	if Object:IsA("Model") then
-		local primarypart = Object.PrimaryPart
-		if primarypart:FindFirstChild("IsCarrying") then
+-- [[ CALLS ]]
+local Carry_Event = Events.Carry
+
+-- [[ TABLES ]]
+local INTERACTIONS = {
+	Power = {"Plug", "Socket"}
+}
+
+-- [[ FUNCTIONS ]]
+function isInteractable(OBJ1, OBJ2) -- 2 models --> interaction name
+	for interactionName, interaction in pairs(INTERACTIONS) do
+		if table.find(interaction, OBJ1.Name) and table.find(interaction, OBJ2.Name) then
+			return interactionName
+		end
+	end
+end
+
+function hasInteraction(model) -- model --> interaction name
+	for interactionName, interaction in pairs(INTERACTIONS) do
+		if table.find(interaction, model.Name) then
+			return interactionName
+		end
+	end
+	
+	return nil
+end
+
+function isBeingCarried(obj)
+	if obj:IsA("Model") then
+		local primarypart = obj.PrimaryPart
+		if primarypart.CollisionGroup == "SelfUncollide" then
 			return true
 		else
 			return false
 		end
 	else
-		if Object:FindFirstChild("IsCarrying") then
+		if obj.CollisionGroup == "SelfUncollide" then
 			return true
 		else
 			return false
@@ -18,56 +46,162 @@ local function HasAlignPosition(Object)
 	end
 end
 
-local function findModelThroughPrimaryPart(primarypart)
-	local current = primarypart
+function setCollisionGroup(part, collisionGroup)
+	local model
+	
+	if part:IsA("Model") then
+		model = part
+	else
+		model = findModelByPrimaryPart(part)
+	end
+	
+	if model then
+		for i, basepart in pairs(model:GetDescendants()) do
+			if basepart:IsA("BasePart") and basepart.CollisionGroup ~= collisionGroup then
+				basepart.CollisionGroup = collisionGroup
+			end
+		end 
+	else
+		part.CollisionGroup = collisionGroup
+	end
+end
+
+function SetNetworkOwner(part, owner)
+	local model
+
+	if part:IsA("Model") then
+		model = part
+	else
+		model = findModelByPrimaryPart(part)
+	end
+
+	if model then
+		for i, basepart in pairs(model:GetDescendants()) do
+			if basepart:IsA("BasePart") and basepart:GetNetworkOwner() ~= owner then
+				basepart:SetNetworkOwner(owner)
+			end
+		end
+	else
+		part:SetNetworkOwner(owner)
+	end
+end
+
+function findModelByPrimaryPart(PrimaryPart)
+	local CURRENT = PrimaryPart
+
+	while CURRENT do
+		-- Checking if current is a model and primary part exists
+		if CURRENT:IsA("Model") and CURRENT.PrimaryPart then
+			if CURRENT.PrimaryPart == PrimaryPart then
+				return CURRENT
+			end
+		end
+
+		-- Assign if fails
+		CURRENT = CURRENT:FindFirstAncestorWhichIsA("Model")
+	end
+
+	return nil
+end
+
+local function findInteractObject(obj) --:: Get InteractObject through part/model
+	local current = obj
+
 	while current do
-		if current:IsA("Model") then
-			if current.PrimaryPart == primarypart then
+		for i, dir in pairs(INTERACTIONS) do
+			if table.find(dir, current.Name) then
 				return current
 			end
 		end
-		current = current.Parent
+
+		current = current:FindFirstAncestorWhichIsA("BasePart") or current:FindFirstAncestorWhichIsA("Model")
 	end
+
 	return nil
 end
 
-local interaction = {
-	["Power"] = {
-		"Plug", "Socket"
-	}
-}
+function getInteractObject(model) --:: Get InteractObject through touching parts
+	local TouchingParts = {}
 
-local function findInteractModel(obj)
-	local current = obj
-	while current do
-		if current:IsA("Model") then
-			for i, dir in pairs(interaction) do
-				if table.find(dir, current.Name) then
-					return current
+	for i, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			for _, touchingPart in ipairs(part:GetTouchingParts()) do
+				if touchingPart:IsDescendantOf(model) then 
+					continue 
 				end
+
+				table.insert(TouchingParts, touchingPart)
 			end
 		end
-		current = current.Parent
 	end
-	return nil
-end
-
-local function findInteraction(Object1, Object2)
-	for i, dir in pairs(interaction) do
-		if table.find(dir, Object1.Name) and table.find(dir, Object2.Name) then
-			return i
+	
+	local InteractObject
+	
+	if #TouchingParts > 0 then	
+		-- Getting InteractObject
+		for i, part in ipairs(TouchingParts) do
+			InteractObject = findInteractObject(part)
+			if InteractObject then break end
 		end
 	end
-	return nil
+	
+	return InteractObject
 end
 
---Specific interactions
+function setUp(model)
+	local interactionName = hasInteraction(model)
+	
+	if interactionName == "Power" then
+		-- Get touching parts
+		local InteractObject = getInteractObject(model) --:: Object thats interactable with model
+		
+		if InteractObject then
+			local INTERACTION = isInteractable(model, InteractObject)
+			
+			-- Plug 'n Socket
+			if INTERACTION then
+				if INTERACTION == "Power" then
+					local nearestSocket
+					local nearestDistance = math.huge
+					
+					for i, socket in pairs(InteractObject.PrimaryPart:GetChildren()) do
+						if socket:IsA("Attachment") then
+							local Distance = (model.PrimaryPart.Position - socket.WorldPosition).Magnitude
+							if nearestDistance > Distance then
+								nearestSocket = socket
+								nearestDistance = Distance
+							end
+						end
+					end
+					
+					model.PrimaryPart.Anchored = true
+					model:SetPrimaryPartCFrame(nearestSocket.WorldCFrame)
+					
+					local Connect = model:FindFirstChildWhichIsA("ObjectValue")
+					if Connect then
+						local linkedObject = Connect.Value
+						linkedObject:SetAttribute("Powered", true)
+					else
+						error("No connection")
+					end
+				end
+				
+				return true
+			end
+		end
+	end
+end
 
-local function powerDisinteraction(InteractObject_)
-	if InteractObject_.Name == "Plug" then
-		local Connect = InteractObject_:FindFirstChildWhichIsA("ObjectValue")
+function cleanUp(model)
+	local interactionName = hasInteraction(model)
+	
+	-- Plug 'n Socket
+	if interactionName == "Power" then
+		local Connect = model:FindFirstChildWhichIsA("ObjectValue")
+		
+		-- Disconnect
 		if Connect then
-			local linkedObject = Connect.Value
+			local linkedObject = Connect.Value --:: any electrical objects
 			linkedObject:SetAttribute("Powered", false)
 		else
 			error("No connection")
@@ -75,114 +209,44 @@ local function powerDisinteraction(InteractObject_)
 	end
 end
 
-local function powerInteraction(InteractPart, InteractObject_)
-	local nearestSocket
-	local nearestDistance = math.huge
-	for i, socket in pairs(InteractPart.PrimaryPart:GetChildren()) do
-		if socket:IsA("Attachment") then
-			local Distance = (InteractObject_.PrimaryPart.Position - socket.WorldPosition).Magnitude
-			if nearestDistance > Distance then
-				nearestSocket = socket
-				nearestDistance = Distance
-			end
-		end
-	end
-	InteractObject_.PrimaryPart.Anchored = true
-	InteractObject_:SetPrimaryPartCFrame(nearestSocket.WorldCFrame)
-	local Connect = InteractObject_:FindFirstChildWhichIsA("ObjectValue")
-	if Connect then
-		local linkedObject = Connect.Value
-		linkedObject:SetAttribute("Powered", true)
+Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
+	-- Carrying
+	local CARRY_MODEL = findModelByPrimaryPart(CARRY_PART)
+	
+	if IS_CARRYING and not isBeingCarried(CARRY_PART) then
+		-- Set collision
+		setCollisionGroup(CARRY_MODEL, "SelfUncollide")
+
+		-- Make the object to be draggable
+		CARRY_PART.Anchored = false
+
+		-- Network handler
+		SetNetworkOwner(CARRY_MODEL, PLR)
+
+		-- Clean up interaction
+		cleanUp(CARRY_MODEL)
 	else
-		error("No connection")
-	end
-end
-
-carry_event.OnServerInvoke = function(plr, IsCarrying, Object_)
-	if IsCarrying then
-		if Object_.CollisionGroup ~= "SelfUncollide" then
-			local model = findModelThroughPrimaryPart(Object_)
-
-			if model then
-				for i, part in pairs(model:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CollisionGroup = "SelfUncollide"
-					end
-				end
-			else
-				Object_.CollisionGroup = "SelfUncollide"
-			end
-		end
-		Object_.Anchored = false
-		if Object_:GetNetworkOwner() ~= plr then
-			Object_:SetNetworkOwner(plr)
-		end
-		--Interaction 
-		local InteractObject_ = findInteractModel(Object_)
-		if InteractObject_ then
-			powerDisinteraction(InteractObject_)
-		end
-	else
-		local model = findModelThroughPrimaryPart(Object_)
-		if Object_.CollisionGroup ~= "Default" then
-			if model then
-				for i, part in pairs(model:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CollisionGroup = "Default"
-					end
-				end
-			else
-				Object_.CollisionGroup = "Default"
-			end
-		end
-
-		--Interaction check
-		local InteractObject_ = findInteractModel(Object_) 
-		if InteractObject_ then
-			if not InteractObject_.PrimaryPart then
-				InteractObject_.PrimaryPart = Object_
-			end
-			local overlapParams = OverlapParams.new()
-			overlapParams.RespectCanCollide = true
-			overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-			overlapParams.FilterDescendantsInstances = {Object_}
-
-			local partsInRadius = {}
-
-			for i, part in ipairs(InteractObject_:GetDescendants()) do
-				if part:IsA("BasePart") then
-					for _, touching in ipairs(part:GetTouchingParts()) do
-						if touching:IsDescendantOf(InteractObject_) then continue end
-						table.insert(partsInRadius, touching)
-					end
-				end
-			end
-
-			if #partsInRadius > 0 then
-				local InteractPart
-				for i, part in ipairs(partsInRadius) do
-					if InteractPart then break end
-					InteractPart = findInteractModel(part)
-				end
-
-				if InteractPart then
-					local interaction = findInteraction(InteractObject_, InteractPart)
-					if interaction == "Power" then
-						powerInteraction(InteractPart, InteractObject_)
-					end
-				end
-			end
-		else
+		-- Carrying ended
+		
+		-- Set collision
+		setCollisionGroup(CARRY_MODEL, "Default")
+		
+		-- Set up interaction
+		local INTERACTED = setUp(CARRY_MODEL)
+		
+		-- Network handler
+		if not INTERACTED then
 			coroutine.wrap(function()
 				--local checkpoint = tick()
 				while task.wait(0.2) do
-					local velocity = Object_.Velocity.Magnitude
+					local velocity = CARRY_PART.Velocity.Magnitude
 					--If lag detector not work then use "tick() - checkpoint >= 5" as a timeout
-					if (velocity < 0.01 and Object_.CollisionGroup == "Default") or Object_.CollisionGroup == "SelfUncollide" then
+					if (velocity < 0.01 and CARRY_PART.CollisionGroup == "Default") or CARRY_PART.CollisionGroup == "SelfUncollide" then
 						--Check if Object is currently not being holding then set it back to server-side
-						if Object_.CollisionGroup == "Default" then
-							Object_:SetNetworkOwner(nil)
+						if CARRY_PART.CollisionGroup == "Default" then
+							SetNetworkOwner(CARRY_MODEL, nil)
 						end
+						
 						break
 					end
 				end

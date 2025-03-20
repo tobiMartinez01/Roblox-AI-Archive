@@ -42,9 +42,31 @@ local KEYCODE = Enum.KeyCode
 --//Functions
 local function findCarriable(PART)
 	local CURRENT = PART
+	local CURRENT_COMENT = PART
 	
 	local OBJ = nil
 	local PRIMARY_PART = nil
+	local COMMENT = nil
+	
+	local function findComment(instance)
+		return instance:GetAttribute("comment")
+	end
+	
+	if findComment(PART) then
+		COMMENT = findComment(PART)
+	else
+		while CURRENT_COMENT do
+			if CURRENT_COMENT:IsA("Model") then
+				COMMENT = findComment(CURRENT_COMENT)
+				
+				--//Break if success
+				break
+			end
+
+			-- Move up using CURRENT's ancestor
+			CURRENT_COMENT = CURRENT_COMENT:FindFirstAncestorWhichIsA("Model")
+		end
+	end
 
 	if PART:FindFirstChild("CarryPoint") then
 		while CURRENT do
@@ -79,12 +101,14 @@ local function findCarriable(PART)
 		end
 	end
 
-	return OBJ, PRIMARY_PART
+	return OBJ, PRIMARY_PART, COMMENT
 end
 
 --//Dragging references
 local CARRY_OBJECT --> Model :: Part
 local CARRY_PART --> CARRY_OBJECT --> PrimaryPart or itself
+local CARRY_COMENT --> CARRY_OBJECT's comment :: string
+
 local CARRYING = false
 local ROTATING = false
 
@@ -103,10 +127,10 @@ end
 
 local function comment()
 	--//Comment
-	if not USER_INTERFACES.desc.Visible then
-		if CARRY_OBJECT:GetAttribute("description") then
+	if CARRY_COMENT then
+		if not USER_INTERFACES.desc.Visible or USER_INTERFACES.desc.Text ~= CARRY_COMENT then
 			USER_INTERFACES.desc.Visible = true
-			USER_INTERFACES.desc.Text = CARRY_OBJECT:GetAttribute("description") 
+			USER_INTERFACES.desc.Text = CARRY_COMENT
 		end
 	end
 end
@@ -151,26 +175,32 @@ coroutine.wrap(function()
 	while RunService.RenderStepped:Wait() do
 		if not CARRYING then
 			local TARGET = MOUSE.Target
+			local HIT = MOUSE.Hit
 
 			if TARGET then
 				--//If model is carriable
-				CARRY_OBJECT, CARRY_PART = findCarriable(TARGET)
+				CARRY_OBJECT, CARRY_PART, CARRY_COMENT = findCarriable(TARGET)
 				
-				if CARRY_OBJECT then
+				if CARRY_OBJECT or CARRY_COMENT then
 					--//Checking distance
-					local DISTANCE = (CARRY_PART.Position - CURRENT_CAM.CFrame.Position).Magnitude
+					local DISTANCE = (HIT.Position - CURRENT_CAM.CFrame.Position).Magnitude
 
 					if DISTANCE <= MIN_DISTANCE then
-						if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
-							--//Highlight
-							HIGHLIGHT()
+						--//Highlight
+						if CARRY_OBJECT then
+							if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+								HIGHLIGHT()
+							end
 							
+							--//Change mouse icon to open hand
+							changeMouseIcon("rbxassetid://382763043")
+						end
+						
+						--//Comment
+						if CARRY_COMENT then
 							--//Comment
 							comment()
 						end
-						
-						--//Change mouse icon to open hand
-						changeMouseIcon("rbxassetid://382763043")
 
 						--[[ SUCCESS ]]
 						continue

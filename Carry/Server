@@ -66,13 +66,13 @@ function setCollisionGroup(part, collisionGroup)
 	end
 end
 
-function SetNetworkOwner(part, owner)
+function SetNetworkOwner(obj, owner)
 	local model
 
-	if part:IsA("Model") then
-		model = part
+	if obj:IsA("Model") then
+		model = obj
 	else
-		model = findModelByPrimaryPart(part)
+		model = findModelByPrimaryPart(obj)
 	end
 
 	if model then
@@ -82,7 +82,7 @@ function SetNetworkOwner(part, owner)
 			end
 		end
 	else
-		part:SetNetworkOwner(owner)
+		obj:SetNetworkOwner(owner)
 	end
 end
 

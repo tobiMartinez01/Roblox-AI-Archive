@@ -199,7 +199,7 @@ Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
 
 	if IS_CARRYING and not isBeingCarried(CARRY_MODEL) then
 		print(CARRY_MODEL)
-		
+
 		-- Set collision
 		setCollisionGroup(CARRY_MODEL, "SelfUncollide")
 

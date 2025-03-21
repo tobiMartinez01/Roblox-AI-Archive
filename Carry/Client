@@ -40,31 +40,34 @@ local CONTROLS = require(PLAYER_SCRIPTS:WaitForChild("PlayerModule")):GetControl
 local KEYCODE = Enum.KeyCode
 
 --//Functions
-local function findCarriable(PART)
+function findCarriable(PART)
 	local CURRENT = PART
-	local CURRENT_COMENT = PART
-	
+	local CURRENT_COMMENT = PART
+
 	local OBJ = nil
 	local PRIMARY_PART = nil
+	local OBJECT_COMMENT = nil
 	local COMMENT = nil
-	
+
 	local function findComment(instance)
 		return instance:GetAttribute("comment")
 	end
-	
+
 	if findComment(PART) then
 		COMMENT = findComment(PART)
+		OBJECT_COMMENT = PART
 	else
-		while CURRENT_COMENT do
-			if CURRENT_COMENT:IsA("Model") then
-				COMMENT = findComment(CURRENT_COMENT)
+		while CURRENT_COMMENT do
+			if CURRENT_COMMENT:IsA("Model") and findComment(CURRENT_COMMENT) then
+				COMMENT = findComment(CURRENT_COMMENT)
+				OBJECT_COMMENT = CURRENT_COMMENT
 				
 				--//Break if success
 				break
 			end
 
 			-- Move up using CURRENT's ancestor
-			CURRENT_COMENT = CURRENT_COMENT:FindFirstAncestorWhichIsA("Model")
+			CURRENT_COMMENT = CURRENT_COMMENT:FindFirstAncestorWhichIsA("Model")
 		end
 	end
 
@@ -101,13 +104,14 @@ local function findCarriable(PART)
 		end
 	end
 
-	return OBJ, PRIMARY_PART, COMMENT
+	return OBJ, PRIMARY_PART, COMMENT, OBJECT_COMMENT
 end
 
 --//Dragging references
 local CARRY_OBJECT --> Model :: Part
 local CARRY_PART --> CARRY_OBJECT --> PrimaryPart or itself
-local CARRY_COMENT --> CARRY_OBJECT's comment :: string
+local COMMENT --> CARRY_OBJECT's comment :: string
+local OBJECT_COMMENT
 
 local CARRYING = false
 local ROTATING = false
@@ -119,41 +123,41 @@ local LAST_TICK = tick()
 local DEBOUNCE = 0.1 --Preventing fling
 
 --//Mouse icon change
-local function changeMouseIcon(id)
+function changeMouseIcon(id)
 	if MOUSE.Icon ~= id then
 		MOUSE.Icon = id
 	end
 end
 
-local function comment()
+function comment()
 	--//Comment
-	if CARRY_COMENT then
-		if not USER_INTERFACES.desc.Visible or USER_INTERFACES.desc.Text ~= CARRY_COMENT then
+	if COMMENT then
+		if not USER_INTERFACES.desc.Visible or USER_INTERFACES.desc.Text ~= COMMENT then
 			USER_INTERFACES.desc.Visible = true
-			USER_INTERFACES.desc.Text = CARRY_COMENT
+			USER_INTERFACES.desc.Text = COMMENT
 		end
 	end
 end
 
-local function removeComment()
+function removeComment()
 	if USER_INTERFACES.desc.Visible then
 		USER_INTERFACES.desc.Visible = false
 	end
 end
 
 --//Highlighting carriable objects
-local function HIGHLIGHT()
+function HIGHLIGHT()
 	SELECTION.Adornee = CARRY_OBJECT
 	LAST_CARRY_OBJECT = CARRY_OBJECT
 end
 
 --//Un-highlight
-local function UN_HIGHLIGHT()
+function UN_HIGHLIGHT()
 	SELECTION.Adornee = nil
 	LAST_CARRY_OBJECT = nil
 end
 
-local function IS_BEING_CARRIED(obj)
+function IS_BEING_CARRIED(obj)
 	if obj:IsA("Model") then
 		local primarypart = obj.PrimaryPart
 		if primarypart:FindFirstChild("IsCarrying") then
@@ -170,65 +174,6 @@ local function IS_BEING_CARRIED(obj)
 	end
 end
 
---Selection handler
-coroutine.wrap(function()
-	while RunService.RenderStepped:Wait() do
-		if LOCAL_PLAYER.Character then
-			if not CARRYING then
-				local TARGET = MOUSE.Target
-				local HIT = MOUSE.Hit
-
-				if TARGET then
-					--//If model is carriable
-					CARRY_OBJECT, CARRY_PART, CARRY_COMENT = findCarriable(TARGET)
-
-					if CARRY_OBJECT or CARRY_COMENT then
-						--//Checking distance
-						local DISTANCE = (HIT.Position - CURRENT_CAM.CFrame.Position).Magnitude
-
-						if DISTANCE <= MIN_DISTANCE then
-							--//Highlight
-							if CARRY_OBJECT then
-								if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
-									HIGHLIGHT()
-								end
-
-								--//Change mouse icon to open hand
-								changeMouseIcon("rbxassetid://382763043")
-							end
-
-							--//Comment
-							if CARRY_COMENT then
-								--//Comment
-								comment()
-							end
-
-							--[[ SUCCESS ]]
-							continue
-						end
-					end
-				end
-
-				--[[ FAIL ]]
-				--//Change mouse icon to default
-				changeMouseIcon("rbxassetid://6001676828")
-
-				--//Un-highlight
-				removeComment()
-				UN_HIGHLIGHT()
-			else
-				--//Change mouse icon to dragging hand
-				changeMouseIcon("rbxassetid://382762994")
-
-				removeComment()
-			end
-		end
-	end
-end)()
-
---//Set mouse icon
-UserInputService.MouseIcon = "rbxassetid://6001676828"
-
 function rotateStart()
 	if CARRYING then
 		CONTROLS:Disable()
@@ -239,24 +184,6 @@ end
 function rotateEnd()
 	CONTROLS:Enable()
 	ROTATING = false
-end
-
-function dragEnd()
-	if CARRYING then
-		--//Debounce
-		repeat
-			task.wait()
-		until tick() - LAST_TICK >= DEBOUNCE
-
-		rotateEnd()
-
-		CARRYING = false
-
-		ALIGN_POS.Parent = self
-		ALIGN_ORIENTATION.Parent = self
-
-		CARRY_EVENT:InvokeServer(false, CARRY_PART)
-	end
 end
 
 function dragStart()
@@ -341,6 +268,156 @@ function dragStart()
 	end
 end
 
+function dragEnd()
+	if CARRYING then
+		--//Debounce
+		repeat
+			task.wait()
+		until tick() - LAST_TICK >= DEBOUNCE
+
+		rotateEnd()
+
+		CARRYING = false
+
+		ALIGN_POS.Parent = self
+		ALIGN_ORIENTATION.Parent = self
+
+		CARRY_EVENT:InvokeServer(false, CARRY_PART)
+	end
+end
+
+function convertToTool()
+	if CARRYING and CARRY_PART and CARRY_PART:GetAttribute("tool") then
+		local toolHandle = CARRY_PART:FindFirstChild("Handle")
+
+		-- Checking if the object has handle point
+		-- This is for calculating offsets
+		if toolHandle then
+			local tool = CARRY_OBJECT
+			local toolPart = CARRY_PART
+			local archivedParent = tool.Parent
+			tool.Parent = Viewmodel --:: The carry object is currently in viewmodel
+
+			-- Ending drag
+			dragEnd()
+
+			-- Creating tool instance
+			local toolInstance = Instance.new("Tool")
+			toolInstance.Name = tool.Name
+			toolInstance.RequiresHandle = false
+			toolInstance.CanBeDropped = false
+			toolInstance.Parent = LOCAL_PLAYER.Backpack
+
+			local Motor6D
+
+			local function equip()
+				-- Making viewmodel visible
+				Viewmodel.Parent = CURRENT_CAM
+
+				local offset = (toolHandle.WorldCFrame - Vm_Handle.WorldCFrame)
+
+				-- Creating weld
+				Motor6D = Instance.new("Motor6D")
+				Motor6D.Parent = Viewmodel["Right Arm"]
+				Motor6D.Part0 = Viewmodel["Right Arm"]
+				Motor6D.Part1 = toolPart
+
+				Motor6D.C1 = -offset
+			end
+
+			local function unequip()
+				-- Clean up
+				Motor6D:Destroy()
+				Viewmodel.Parent = ReplicatedStorage
+			end
+
+			local equipEvent
+			local unequipEvent
+
+			equipEvent = toolInstance.Equipped:Connect(equip)
+			unequipEvent = toolInstance.Unequipped:Connect(unequip)
+		end
+	end
+end
+
+--//Set mouse icon
+UserInputService.MouseIcon = "rbxassetid://6001676828"
+
+--Selection handler
+coroutine.wrap(function()
+	while RunService.RenderStepped:Wait() do
+		if LOCAL_PLAYER.Character then
+			if not CARRYING then
+				local TARGET = MOUSE.Target
+				local HIT = MOUSE.Hit
+
+				if TARGET then
+					--//If model is carriable
+					CARRY_OBJECT, CARRY_PART, COMMENT, OBJECT_COMMENT = findCarriable(TARGET)
+
+					if CARRY_OBJECT or COMMENT then
+						--//Checking distance
+						local ORIGIN
+						
+						if CARRY_PART then
+							ORIGIN = CARRY_PART.Position
+						else
+							if OBJECT_COMMENT then
+								if OBJECT_COMMENT:IsA("Model") then
+									if OBJECT_COMMENT.PrimaryPart then
+										ORIGIN = OBJECT_COMMENT.PrimaryPart.Position
+									else
+										ORIGIN = HIT.Position
+									end
+								else
+									ORIGIN = OBJECT_COMMENT.Position
+								end
+							end
+						end
+						
+						local DISTANCE = (ORIGIN - CURRENT_CAM.CFrame.Position).Magnitude
+
+						if DISTANCE <= MIN_DISTANCE then
+							--//Highlight
+							if CARRY_OBJECT then
+								if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+									HIGHLIGHT()
+								end
+
+								--//Change mouse icon to open hand
+								changeMouseIcon("rbxassetid://382763043")
+							end
+
+							--//Comment
+							if COMMENT then
+								--//Comment
+								comment()
+							end
+
+							--[[ SUCCESS ]]
+							continue
+						end
+					end
+				end
+
+				--[[ FAIL ]]
+				--//Change mouse icon to default
+				changeMouseIcon("rbxassetid://6001676828")
+
+				--//Un-highlight
+				removeComment()
+				UN_HIGHLIGHT()
+			else
+				--//Change mouse icon to dragging hand
+				changeMouseIcon("rbxassetid://382762994")
+
+				removeComment()
+			end
+		end
+	end
+end)()
+
+
 --//Input start
 UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 	--Not receiving inputs if the player is chatting
@@ -355,8 +432,11 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 	if INPUT.UserInputType == Enum.UserInputType.MouseButton2 then
 		rotateStart()
 	end
-end)
 
+	if INPUT.KeyCode == Enum.KeyCode.E  then
+		convertToTool()
+	end
+end) 
 --//Input ended
 UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
 	--Not receiving inputs if the player is chatting

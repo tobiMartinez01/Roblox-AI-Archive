@@ -173,53 +173,55 @@ end
 --Selection handler
 coroutine.wrap(function()
 	while RunService.RenderStepped:Wait() do
-		if not CARRYING then
-			local TARGET = MOUSE.Target
-			local HIT = MOUSE.Hit
+		if LOCAL_PLAYER.Character then
+			if not CARRYING then
+				local TARGET = MOUSE.Target
+				local HIT = MOUSE.Hit
 
-			if TARGET then
-				--//If model is carriable
-				CARRY_OBJECT, CARRY_PART, CARRY_COMENT = findCarriable(TARGET)
-				
-				if CARRY_OBJECT or CARRY_COMENT then
-					--//Checking distance
-					local DISTANCE = (HIT.Position - CURRENT_CAM.CFrame.Position).Magnitude
+				if TARGET then
+					--//If model is carriable
+					CARRY_OBJECT, CARRY_PART, CARRY_COMENT = findCarriable(TARGET)
 
-					if DISTANCE <= MIN_DISTANCE then
-						--//Highlight
-						if CARRY_OBJECT then
-							if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
-								HIGHLIGHT()
+					if CARRY_OBJECT or CARRY_COMENT then
+						--//Checking distance
+						local DISTANCE = (HIT.Position - CURRENT_CAM.CFrame.Position).Magnitude
+
+						if DISTANCE <= MIN_DISTANCE then
+							--//Highlight
+							if CARRY_OBJECT then
+								if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
+									HIGHLIGHT()
+								end
+
+								--//Change mouse icon to open hand
+								changeMouseIcon("rbxassetid://382763043")
 							end
-							
-							--//Change mouse icon to open hand
-							changeMouseIcon("rbxassetid://382763043")
-						end
-						
-						--//Comment
-						if CARRY_COMENT then
-							--//Comment
-							comment()
-						end
 
-						--[[ SUCCESS ]]
-						continue
+							--//Comment
+							if CARRY_COMENT then
+								--//Comment
+								comment()
+							end
+
+							--[[ SUCCESS ]]
+							continue
+						end
 					end
 				end
-			end
 
-			--[[ FAIL ]]
-			--//Change mouse icon to default
-			changeMouseIcon("rbxassetid://6001676828")
-			
-			--//Un-highlight
-			removeComment()
-			UN_HIGHLIGHT()
-		else
-			--//Change mouse icon to dragging hand
-			changeMouseIcon("rbxassetid://382762994")
-			
-			removeComment()
+				--[[ FAIL ]]
+				--//Change mouse icon to default
+				changeMouseIcon("rbxassetid://6001676828")
+
+				--//Un-highlight
+				removeComment()
+				UN_HIGHLIGHT()
+			else
+				--//Change mouse icon to dragging hand
+				changeMouseIcon("rbxassetid://382762994")
+
+				removeComment()
+			end
 		end
 	end
 end)()

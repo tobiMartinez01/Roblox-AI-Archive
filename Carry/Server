@@ -25,7 +25,7 @@ function hasInteraction(model) -- model --> interaction name
 			return interactionName
 		end
 	end
-	
+
 	return nil
 end
 
@@ -47,16 +47,8 @@ function isBeingCarried(obj)
 end
 
 function setCollisionGroup(part, collisionGroup)
-	local model
-	
 	if part:IsA("Model") then
-		model = part
-	else
-		model = findModelByPrimaryPart(part)
-	end
-	
-	if model then
-		for i, basepart in pairs(model:GetDescendants()) do
+		for i, basepart in pairs(part:GetDescendants()) do
 			if basepart:IsA("BasePart") and basepart.CollisionGroup ~= collisionGroup then
 				basepart.CollisionGroup = collisionGroup
 			end
@@ -67,16 +59,8 @@ function setCollisionGroup(part, collisionGroup)
 end
 
 function SetNetworkOwner(obj, owner)
-	local model
-
 	if obj:IsA("Model") then
-		model = obj
-	else
-		model = findModelByPrimaryPart(obj)
-	end
-
-	if model then
-		for i, basepart in pairs(model:GetDescendants()) do
+		for i, basepart in pairs(obj:GetDescendants()) do
 			if basepart:IsA("BasePart") and basepart:GetNetworkOwner() ~= owner then
 				basepart:SetNetworkOwner(owner)
 			end
@@ -101,7 +85,7 @@ function findModelByPrimaryPart(PrimaryPart)
 		CURRENT = CURRENT:FindFirstAncestorWhichIsA("Model")
 	end
 
-	return nil
+	return PrimaryPart
 end
 
 local function findInteractObject(obj) --:: Get InteractObject through part/model
@@ -134,9 +118,9 @@ function getInteractObject(model) --:: Get InteractObject through touching parts
 			end
 		end
 	end
-	
+
 	local InteractObject
-	
+
 	if #TouchingParts > 0 then	
 		-- Getting InteractObject
 		for i, part in ipairs(TouchingParts) do
@@ -144,26 +128,26 @@ function getInteractObject(model) --:: Get InteractObject through touching parts
 			if InteractObject then break end
 		end
 	end
-	
+
 	return InteractObject
 end
 
 function setUp(model)
 	local interactionName = hasInteraction(model)
-	
+
 	if interactionName == "Power" then
 		-- Get touching parts
 		local InteractObject = getInteractObject(model) --:: Object thats interactable with model
-		
+
 		if InteractObject then
 			local INTERACTION = isInteractable(model, InteractObject)
-			
+
 			-- Plug 'n Socket
 			if INTERACTION then
 				if INTERACTION == "Power" then
 					local nearestSocket
 					local nearestDistance = math.huge
-					
+
 					for i, socket in pairs(InteractObject.PrimaryPart:GetChildren()) do
 						if socket:IsA("Attachment") then
 							local Distance = (model.PrimaryPart.Position - socket.WorldPosition).Magnitude
@@ -173,10 +157,10 @@ function setUp(model)
 							end
 						end
 					end
-					
+
 					model.PrimaryPart.Anchored = true
 					model:SetPrimaryPartCFrame(nearestSocket.WorldCFrame)
-					
+
 					local Connect = model:FindFirstChildWhichIsA("ObjectValue")
 					if Connect then
 						local linkedObject = Connect.Value
@@ -185,7 +169,7 @@ function setUp(model)
 						error("No connection")
 					end
 				end
-				
+
 				return true
 			end
 		end
@@ -194,11 +178,11 @@ end
 
 function cleanUp(model)
 	local interactionName = hasInteraction(model)
-	
+
 	-- Plug 'n Socket
 	if interactionName == "Power" then
 		local Connect = model:FindFirstChildWhichIsA("ObjectValue")
-		
+
 		-- Disconnect
 		if Connect then
 			local linkedObject = Connect.Value --:: any electrical objects
@@ -212,8 +196,10 @@ end
 Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
 	-- Carrying
 	local CARRY_MODEL = findModelByPrimaryPart(CARRY_PART)
-	
-	if IS_CARRYING and not isBeingCarried(CARRY_PART) then
+
+	if IS_CARRYING and not isBeingCarried(CARRY_MODEL) then
+		print(CARRY_MODEL)
+		
 		-- Set collision
 		setCollisionGroup(CARRY_MODEL, "SelfUncollide")
 
@@ -227,13 +213,13 @@ Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
 		cleanUp(CARRY_MODEL)
 	else
 		-- Carrying ended
-		
+
 		-- Set collision
 		setCollisionGroup(CARRY_MODEL, "Default")
-		
+
 		-- Set up interaction
 		local INTERACTED = setUp(CARRY_MODEL)
-		
+
 		-- Network handler
 		if not INTERACTED then
 			coroutine.wrap(function()
@@ -246,7 +232,7 @@ Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
 						if CARRY_PART.CollisionGroup == "Default" then
 							SetNetworkOwner(CARRY_MODEL, nil)
 						end
-						
+
 						break
 					end
 				end

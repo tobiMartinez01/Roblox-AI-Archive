@@ -39,6 +39,10 @@ local MOUSE = LOCAL_PLAYER:GetMouse()
 local CONTROLS = require(PLAYER_SCRIPTS:WaitForChild("PlayerModule")):GetControls()
 local KEYCODE = Enum.KeyCode
 
+-- Viewmodel references
+local Viewmodel = ReplicatedStorage.Viewmodel
+local Vm_Handle = Viewmodel["Right Arm"].Handle
+
 --//Functions
 function findCarriable(PART)
 	local CURRENT = PART
@@ -286,6 +290,18 @@ function dragEnd()
 	end
 end
 
+function setCollisionGroup(part, collisionGroup)
+	if part:IsA("Model") then
+		for i, basepart in pairs(part:GetDescendants()) do
+			if basepart:IsA("BasePart") and basepart.CollisionGroup ~= collisionGroup then
+				basepart.CollisionGroup = collisionGroup
+			end
+		end 
+	else
+		part.CollisionGroup = collisionGroup
+	end
+end
+
 function convertToTool()
 	if CARRYING and CARRY_PART and CARRY_PART:GetAttribute("tool") then
 		local toolHandle = CARRY_PART:FindFirstChild("Handle")
@@ -296,6 +312,15 @@ function convertToTool()
 			local tool = CARRY_OBJECT
 			local toolPart = CARRY_PART
 			local archivedParent = tool.Parent
+			local archivedScale
+			
+			if tool:IsA("Model") then
+				archivedScale = tool:GetScale()
+			else
+				archivedScale = tool.Size
+			end
+			
+			
 			tool.Parent = Viewmodel --:: The carry object is currently in viewmodel
 
 			-- Ending drag
@@ -309,30 +334,44 @@ function convertToTool()
 			toolInstance.Parent = LOCAL_PLAYER.Backpack
 
 			local Motor6D
+			local equipEvent
+			local unequipEvent
+			local RenderStepped
 
 			local function equip()
 				-- Making viewmodel visible
 				Viewmodel.Parent = CURRENT_CAM
-
-				local offset = (toolHandle.WorldCFrame - Vm_Handle.WorldCFrame)
+				
+				-- Scale down the model/part
+				if tool:IsA("Model") then
+					tool:ScaleTo(0.3)
+				else
+					tool.Size = archivedScale * 0.3
+					toolHandle.Position*=0.3
+				end
+				
+				-- Collision
+				setCollisionGroup(tool, "Viewmodel")
 
 				-- Creating weld
 				Motor6D = Instance.new("Motor6D")
 				Motor6D.Parent = Viewmodel["Right Arm"]
 				Motor6D.Part0 = Viewmodel["Right Arm"]
 				Motor6D.Part1 = toolPart
-
-				Motor6D.C1 = -offset
+				Motor6D.C0 = Viewmodel["Right Arm"].CFrame:ToObjectSpace(Vm_Handle.WorldCFrame)
+				Motor6D.C1 = Vm_Handle.WorldCFrame:ToObjectSpace(toolHandle.WorldCFrame)
+				
+				RenderStepped = RunService.RenderStepped:Connect(function()
+					Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame
+				end)
 			end
 
 			local function unequip()
 				-- Clean up
 				Motor6D:Destroy()
+				RenderStepped:Disconnect()
 				Viewmodel.Parent = ReplicatedStorage
 			end
-
-			local equipEvent
-			local unequipEvent
 
 			equipEvent = toolInstance.Equipped:Connect(equip)
 			unequipEvent = toolInstance.Unequipped:Connect(unequip)

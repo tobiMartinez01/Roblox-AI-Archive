@@ -1,11 +1,11 @@
---//CLIENT//--
+-- CLIENT//--
 
---//Settings
+-- Settings
 local MIN_DISTANCE = 6 --Pick up
 local MAX_DISTANCE = 10 --The furthest can object be away
 local FPS_CAP = 30
 
---//Services
+-- Services
 local RunService = game["Run Service"]
 local ReplicatedStorage = game.ReplicatedStorage
 local ContextActionService = game.ContextActionService
@@ -15,7 +15,7 @@ local CURRENT_CAM = workspace.CurrentCamera
 
 local EVENTS = ReplicatedStorage.Events
 
---//References
+-- References
 local self = script
 local SELECTION = self.Selection:Clone()
 SELECTION.Parent = CURRENT_CAM
@@ -25,7 +25,7 @@ local CARRY_EVENT = EVENTS.Carry
 local ALIGN_POS = self.IsCarrying
 local ALIGN_ORIENTATION = self.IsCarrying_Orientation
 
---//Player references
+-- Player references
 local LOCAL_PLAYER = Players.LocalPlayer
 local PLAYER_SCRIPTS = LOCAL_PLAYER.PlayerScripts
 local PLAYER_GUI = LOCAL_PLAYER.PlayerGui
@@ -35,15 +35,31 @@ USER_INTERFACES.Enabled = true
 
 local MOUSE = LOCAL_PLAYER:GetMouse()
 
---//Misc references
+-- Misc references
 local CONTROLS = require(PLAYER_SCRIPTS:WaitForChild("PlayerModule")):GetControls()
 local KEYCODE = Enum.KeyCode
+
+-- Dragging references
+local CARRY_OBJECT --> Model :: Part
+local LAST_CARRY_OBJECT
+local CARRY_PART --> CARRY_OBJECT --> PrimaryPart or itself
+
+local COMMENT --> CARRY_OBJECT's comment :: string
+local OBJECT_COMMENT --> Object thats containing comment :: obj
+
+local CARRYING = false
+local ROTATING = false
+
+-- Timing references
+local LAST_TICK = tick()
+local DEBOUNCE = 0.1 --Preventing fling
 
 -- Viewmodel references
 local Viewmodel = ReplicatedStorage.Viewmodel
 local Vm_Handle = Viewmodel["Right Arm"].Handle
+local ConvertToTool_Event = EVENTS.ConvertToTool
 
---//Functions
+-- [[ FUNCTION ]]
 function findCarriable(PART)
 	local CURRENT = PART
 	local CURRENT_COMMENT = PART
@@ -65,8 +81,8 @@ function findCarriable(PART)
 			if CURRENT_COMMENT:IsA("Model") and findComment(CURRENT_COMMENT) then
 				COMMENT = findComment(CURRENT_COMMENT)
 				OBJECT_COMMENT = CURRENT_COMMENT
-				
-				--//Break if success
+
+				-- Break if success
 				break
 			end
 
@@ -111,22 +127,7 @@ function findCarriable(PART)
 	return OBJ, PRIMARY_PART, COMMENT, OBJECT_COMMENT
 end
 
---//Dragging references
-local CARRY_OBJECT --> Model :: Part
-local CARRY_PART --> CARRY_OBJECT --> PrimaryPart or itself
-local COMMENT --> CARRY_OBJECT's comment :: string
-local OBJECT_COMMENT
-
-local CARRYING = false
-local ROTATING = false
-
-local LAST_CARRY_OBJECT
-
---//Timing references
-local LAST_TICK = tick()
-local DEBOUNCE = 0.1 --Preventing fling
-
---//Mouse icon change
+-- Mouse icon change
 function changeMouseIcon(id)
 	if MOUSE.Icon ~= id then
 		MOUSE.Icon = id
@@ -134,7 +135,7 @@ function changeMouseIcon(id)
 end
 
 function comment()
-	--//Comment
+	-- Comment
 	if COMMENT then
 		if not USER_INTERFACES.desc.Visible or USER_INTERFACES.desc.Text ~= COMMENT then
 			USER_INTERFACES.desc.Visible = true
@@ -149,13 +150,13 @@ function removeComment()
 	end
 end
 
---//Highlighting carriable objects
+-- Highlighting carriable objects
 function HIGHLIGHT()
 	SELECTION.Adornee = CARRY_OBJECT
 	LAST_CARRY_OBJECT = CARRY_OBJECT
 end
 
---//Un-highlight
+-- Un-highlight
 function UN_HIGHLIGHT()
 	SELECTION.Adornee = nil
 	LAST_CARRY_OBJECT = nil
@@ -192,26 +193,26 @@ end
 
 function dragStart()
 	if not CARRYING and CARRY_OBJECT and CARRY_PART then
-		--//Calculating if the player is close enough
+		-- Calculating if the player is close enough
 		local CAM_POS = CURRENT_CAM.CFrame.Position
 		local CARRY_PART_POS = CARRY_PART.Position
 
 		local DISTANCE = (CAM_POS - CARRY_PART_POS).Magnitude
 
 		if DISTANCE <= MIN_DISTANCE then
-			--//Debounce
+			-- Debounce
 			CARRYING = true
 			LAST_TICK = tick()
 
 			local INITIAL_CAM_CFRAME = CURRENT_CAM.CFrame
 			local INITIAL_PART_CFRAME = CARRY_PART.CFrame
 
-			--//Fire event
+			-- Fire event
 			CARRY_EVENT:InvokeServer(true, CARRY_PART)
 
-			--//Check if I need to apply force
+			-- Check if I need to apply force
 			if not IS_BEING_CARRIED(CARRY_OBJECT) then
-				--//Applying force
+				-- Applying force
 				ALIGN_POS.Parent = CARRY_PART
 				ALIGN_ORIENTATION.Parent = CARRY_PART
 
@@ -222,7 +223,7 @@ function dragStart()
 				ALIGN_ORIENTATION.Attachment0 = CARRY_PART.CarryPoint
 			end
 
-			--//Main handler
+			-- Main handler
 			local NEW_THREAD
 			NEW_THREAD = RunService.RenderStepped:Connect(function(dt)
 				if CARRY_PART then
@@ -239,7 +240,7 @@ function dragStart()
 
 						local CURRENT_CAM_CFRAME = CURRENT_CAM.CFrame
 
-						--//Rotate handler
+						-- Rotate handler
 						if ROTATING then
 							if UserInputService:IsKeyDown(KEYCODE.W) then
 								X_DELTA = 10
@@ -264,7 +265,7 @@ function dragStart()
 					end
 				end
 
-				--//Disconnect if fail
+				-- Disconnect if fail
 				NEW_THREAD:Disconnect()
 				dragEnd()
 			end)
@@ -272,114 +273,140 @@ function dragStart()
 	end
 end
 
-function dragEnd()
+function dragEnd(tool)
 	if CARRYING then
-		--//Debounce
+		-- Debounce
 		repeat
 			task.wait()
 		until tick() - LAST_TICK >= DEBOUNCE
 
 		rotateEnd()
-
 		CARRYING = false
 
 		ALIGN_POS.Parent = self
 		ALIGN_ORIENTATION.Parent = self
 
-		CARRY_EVENT:InvokeServer(false, CARRY_PART)
+		CARRY_EVENT:InvokeServer(false, CARRY_PART, tool)
+		
+		CARRY_OBJECT = nil
+		CARRY_PART = nil
 	end
 end
 
-function setCollisionGroup(part, collisionGroup)
-	if part:IsA("Model") then
-		for i, basepart in pairs(part:GetDescendants()) do
+function setCollisionGroup(obj, collisionGroup)
+	if obj:IsA("Model") then
+		for i, basepart in pairs(obj:GetDescendants()) do
 			if basepart:IsA("BasePart") and basepart.CollisionGroup ~= collisionGroup then
 				basepart.CollisionGroup = collisionGroup
 			end
 		end 
 	else
-		part.CollisionGroup = collisionGroup
+		obj.CollisionGroup = collisionGroup
 	end
 end
 
 function convertToTool()
-	if CARRYING and CARRY_PART and CARRY_PART:GetAttribute("tool") then
-		local toolHandle = CARRY_PART:FindFirstChild("Handle")
-
-		-- Checking if the object has handle point
-		-- This is for calculating offsets
-		if toolHandle then
-			local tool = CARRY_OBJECT
-			local toolPart = CARRY_PART
-			local archivedParent = tool.Parent
-			local archivedScale
-			
-			if tool:IsA("Model") then
-				archivedScale = tool:GetScale()
-			else
-				archivedScale = tool.Size
-			end
-			
-			
-			tool.Parent = Viewmodel --:: The carry object is currently in viewmodel
-
-			-- Ending drag
-			dragEnd()
-
-			-- Creating tool instance
-			local toolInstance = Instance.new("Tool")
-			toolInstance.Name = tool.Name
-			toolInstance.RequiresHandle = false
-			toolInstance.CanBeDropped = false
-			toolInstance.Parent = LOCAL_PLAYER.Backpack
-
-			local Motor6D
-			local equipEvent
-			local unequipEvent
-			local RenderStepped
-
-			local function equip()
-				-- Making viewmodel visible
-				Viewmodel.Parent = CURRENT_CAM
-				
-				-- Scale down the model/part
-				if tool:IsA("Model") then
-					tool:ScaleTo(0.3)
-				else
-					tool.Size = archivedScale * 0.3
-					toolHandle.Position*=0.3
-				end
-				
-				-- Collision
-				setCollisionGroup(tool, "Viewmodel")
-
-				-- Creating weld
-				Motor6D = Instance.new("Motor6D")
-				Motor6D.Parent = Viewmodel["Right Arm"]
-				Motor6D.Part0 = Viewmodel["Right Arm"]
-				Motor6D.Part1 = toolPart
-				Motor6D.C0 = Viewmodel["Right Arm"].CFrame:ToObjectSpace(Vm_Handle.WorldCFrame)
-				Motor6D.C1 = Vm_Handle.WorldCFrame:ToObjectSpace(toolHandle.WorldCFrame)
-				
-				RenderStepped = RunService.RenderStepped:Connect(function()
-					Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame
-				end)
-			end
-
-			local function unequip()
-				-- Clean up
-				Motor6D:Destroy()
-				RenderStepped:Disconnect()
-				Viewmodel.Parent = ReplicatedStorage
-			end
-
-			equipEvent = toolInstance.Equipped:Connect(equip)
-			unequipEvent = toolInstance.Unequipped:Connect(unequip)
+	if CARRYING and CARRY_OBJECT and CARRY_PART then
+		-- [[ SERVER-SIDE ]]
+		local initialSize, tool, toolInstance = ConvertToTool_Event:InvokeServer(CARRY_OBJECT, CARRY_PART)
+		dragEnd(true)
+		
+		-- [[ CLIENT-SIDE ]]
+		
+		-- Cloning tool model
+		local Viewmodel_tool = tool:Clone()
+		Viewmodel_tool.Name = "FakeModel"
+		
+		local tool_part = if Viewmodel_tool:IsA("Model") then Viewmodel_tool.PrimaryPart else Viewmodel_tool :: BasePart
+		local toolHandle = tool_part:FindFirstChild("Handle")
+		
+		-- Scale viewmodel down to match with viewmodel's scale
+		if Viewmodel_tool:IsA('Model') then
+			Viewmodel_tool:ScaleTo(0.3)
+		else
+			Viewmodel_tool.Size = initialSize * 0.3
+			Viewmodel_tool:FindFirstChild("Handle").Position*=0.3
 		end
+		
+		-- Moving tool_part to viewmodel grip
+		tool_part.CFrame = Vm_Handle.WorldCFrame
+		
+		-- Creating Motor6D rig
+		local Motor6D = Instance.new("Motor6D")
+		Motor6D.Parent = Viewmodel["Right Arm"]		
+		Motor6D.C0 = Viewmodel["Right Arm"].CFrame:ToObjectSpace(Vm_Handle.WorldCFrame)
+		Motor6D.C1 = Vm_Handle.WorldCFrame:ToObjectSpace(toolHandle.WorldCFrame)
+		
+		Motor6D.Part0 = Viewmodel["Right Arm"]
+		Motor6D.Part1 = tool_part
+		
+		-- [[ FUNCTIONS ]]
+		local equipped
+		local unequipped
+		local dropped
+		local RenderStepped
+
+		local isEquipped = false
+		
+		local function viewmodel(bool)
+			if bool then
+				Viewmodel.Parent = CURRENT_CAM
+				Viewmodel_tool.Parent = Viewmodel
+			else
+				Viewmodel.Parent = ReplicatedStorage
+				Viewmodel_tool.Parent = ReplicatedStorage
+			end
+		end
+		
+		local function cleanUp()
+			isEquipped = false
+			
+			-- Clean up connections
+			equipped:Disconnect()
+			unequipped:Disconnect()
+			dropped:Disconnect()
+			RenderStepped:Disconnect()
+
+			equipped = nil
+			unequipped = nil
+			dropped = nil
+			RenderStepped = nil
+
+			-- Viewmodel visibility
+			viewmodel(isEquipped)
+			
+			-- Destroy
+			Viewmodel_tool:Destroy()
+		end
+		
+		-- [[ EVENTS ]]	
+		equipped = toolInstance.Equipped:Connect(function()
+			-- Viewmodel visibility
+			isEquipped = true
+			viewmodel(isEquipped)	
+		end)
+		
+		unequipped = toolInstance.Unequipped:Connect(function()
+			-- Viewmodel visibility
+			isEquipped = false
+			viewmodel(isEquipped)
+		end)
+		
+		dropped = toolInstance:GetPropertyChangedSignal('Parent'):Connect(function()
+			if toolInstance.Parent ~= LOCAL_PLAYER.Backpack and toolInstance.Parent ~= LOCAL_PLAYER.Character then
+				cleanUp()
+			end
+		end)
+		
+		RenderStepped = RunService.RenderStepped:Connect(function()
+			if isEquipped then
+				Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame
+			end
+		end)
 	end
 end
 
---//Set mouse icon
+-- Set mouse icon
 UserInputService.MouseIcon = "rbxassetid://6001676828"
 
 --Selection handler
@@ -391,11 +418,11 @@ coroutine.wrap(function()
 				local HIT = MOUSE.Hit
 
 				if TARGET then
-					--//If model is carriable
+					-- If model is carriable
 					CARRY_OBJECT, CARRY_PART, COMMENT, OBJECT_COMMENT = findCarriable(TARGET)
 
 					if CARRY_OBJECT or COMMENT then
-						--//Checking distance
+						-- Checking distance
 						local ORIGIN
 						
 						if CARRY_PART then
@@ -417,19 +444,19 @@ coroutine.wrap(function()
 						local DISTANCE = (ORIGIN - CURRENT_CAM.CFrame.Position).Magnitude
 
 						if DISTANCE <= MIN_DISTANCE then
-							--//Highlight
+							-- Highlight
 							if CARRY_OBJECT then
 								if CARRY_OBJECT ~= LAST_CARRY_OBJECT then
 									HIGHLIGHT()
 								end
 
-								--//Change mouse icon to open hand
+								-- Change mouse icon to open hand
 								changeMouseIcon("rbxassetid://382763043")
 							end
 
-							--//Comment
+							-- Comment
 							if COMMENT then
-								--//Comment
+								-- Comment
 								comment()
 							end
 
@@ -440,14 +467,14 @@ coroutine.wrap(function()
 				end
 
 				--[[ FAIL ]]
-				--//Change mouse icon to default
+				-- Change mouse icon to default
 				changeMouseIcon("rbxassetid://6001676828")
 
-				--//Un-highlight
+				-- Un-highlight
 				removeComment()
 				UN_HIGHLIGHT()
 			else
-				--//Change mouse icon to dragging hand
+				-- Change mouse icon to dragging hand
 				changeMouseIcon("rbxassetid://382762994")
 
 				removeComment()
@@ -457,7 +484,7 @@ coroutine.wrap(function()
 end)()
 
 
---//Input start
+-- Input start
 UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 	--Not receiving inputs if the player is chatting
 	if CHATTING then
@@ -476,7 +503,7 @@ UserInputService.InputBegan:Connect(function(INPUT, CHATTING)
 		convertToTool()
 	end
 end) 
---//Input ended
+-- Input ended
 UserInputService.InputEnded:Connect(function(INPUT, CHATTING)
 	--Not receiving inputs if the player is chatting
 	if CHATTING then

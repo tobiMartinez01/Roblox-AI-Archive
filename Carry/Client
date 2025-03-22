@@ -306,12 +306,13 @@ function setCollisionGroup(obj, collisionGroup)
 end
 
 function convertToTool()
-	if CARRYING and CARRY_OBJECT and CARRY_PART then
+	if CARRYING and CARRY_OBJECT and CARRY_OBJECT:GetAttribute("tool") then
 		-- [[ SERVER-SIDE ]]
 		local initialSize, tool, toolInstance = ConvertToTool_Event:InvokeServer(CARRY_OBJECT, CARRY_PART)
 		dragEnd(true)
 		
 		-- [[ CLIENT-SIDE ]]
+		local transparencyData = {}
 		
 		-- Cloning tool model
 		local Viewmodel_tool = tool:Clone()
@@ -321,12 +322,16 @@ function convertToTool()
 		local toolHandle = tool_part:FindFirstChild("Handle")
 		
 		-- Scale viewmodel down to match with viewmodel's scale
-		if Viewmodel_tool:IsA('Model') then
-			Viewmodel_tool:ScaleTo(0.3)
-		else
-			Viewmodel_tool.Size = initialSize * 0.3
-			Viewmodel_tool:FindFirstChild("Handle").Position*=0.3
+		local function scaleTo(obj, value)
+			if obj:IsA('Model') then
+				obj:ScaleTo(value)
+			else
+				obj.Size = initialSize * value
+				obj:FindFirstChild("Handle").Position*=value
+			end
 		end
+		
+		scaleTo(Viewmodel_tool, 0.3)
 		
 		-- Moving tool_part to viewmodel grip
 		tool_part.CFrame = Vm_Handle.WorldCFrame
@@ -377,6 +382,15 @@ function convertToTool()
 			
 			-- Destroy
 			Viewmodel_tool:Destroy()
+			
+			-- Restore
+			for i, data in pairs(transparencyData) do
+				for property, value in pairs(data) do
+					if property ~= "Object" then
+						data.Object[property] = value
+					end
+				end
+			end
 		end
 		
 		-- [[ EVENTS ]]	
@@ -403,6 +417,29 @@ function convertToTool()
 				Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame
 			end
 		end)
+		
+		-- Making actual tool invisible
+		if tool:IsA("Model") then
+			for i, basepart in pairs(tool:GetDescendants()) do
+				if basepart:IsA("BasePart") then
+					local data = {
+						Object = basepart,
+						Transparency = basepart.Transparency
+					}
+					table.insert(transparencyData, data)
+					basepart.Transparency = 1
+				end
+			end
+		elseif tool:IsA("BasePart") then
+			local data = {
+				Object = tool,
+				Transparency = tool.Transparency
+			}
+			table.insert(transparencyData, data)
+			tool.Transparency = 1
+		end
+		
+		print(transparencyData)
 	end
 end
 

@@ -1,4 +1,4 @@
--- CLIENT//--
+--  [[ CLIENT ]]--
 
 -- Settings
 local MIN_DISTANCE = 6 --Pick up

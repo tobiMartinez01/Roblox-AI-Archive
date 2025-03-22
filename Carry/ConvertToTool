@@ -1,0 +1,110 @@
+-- [[ SERVICES ]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Tools = ReplicatedStorage.Tools
+
+-- [[ REMOTES ]]
+local Events = ReplicatedStorage.Events
+local ConvertToTool_Event = Events.ConvertToTool
+
+-- [[ FUNCTIONs ]]
+function setCollisionGroup(obj, collisionGroup)
+	if obj:IsA("Model") then
+		for i, basepart in pairs(obj:GetDescendants()) do
+			if basepart:IsA("BasePart") and basepart.CollisionGroup ~= collisionGroup then
+				basepart.CollisionGroup = collisionGroup
+			end
+		end 
+	else
+		obj.CollisionGroup = collisionGroup
+	end
+end
+
+ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
+	--[[ REFERENCES ]]
+	local tool  = CARRY_OBJECT --:: Model or Basepart
+	local tool_part = CARRY_PART --:: PrimaryPart or Basepartpart
+	local toolHandle = tool_part:FindFirstChild("Handle") --:: Attachment
+	
+	local Backpack = plr.Backpack
+	
+	local ToolGrip = plr.Character["Right Arm"].RightGripAttachment
+	
+	local toolInstance
+	
+	local initialName
+	local initialParent
+	local initialSize
+	
+	-- If tool's handle exists then
+	if toolHandle then
+		-- [[ ARCHIVE ]]
+		initialName = tool_part.Name
+		initialParent = tool.Parent
+		initialSize = if tool:IsA("Model") then tool:GetScale() else tool.Size
+		
+		-- Checking if premade toolInstance exists
+		if Tools:FindFirstChild(tool.Name) then
+			-- Duplicate
+			toolInstance = Tools:FindFirstChild(tool.Name):Clone()
+			toolInstance.Parent = Backpack
+		else
+			-- Creating new toolInstance
+			toolInstance = Instance.new("Tool")
+			toolInstance.Name = tool.Name
+			toolInstance.RequiresHandle = false
+			toolInstance.CanBeDropped = true
+			toolInstance.Parent = Backpack
+		end  
+		
+		-- Calculating grip
+		tool_part.CFrame = ToolGrip.WorldCFrame
+		toolInstance.Grip = ToolGrip.WorldCFrame:ToObjectSpace(toolHandle.WorldCFrame)
+		
+		-- Making tool be able to hold / tool_part --> Handle
+		tool_part.Name = "Handle"
+		tool_part.CanTouch = false
+		
+		-- Parenting tool model to tool
+		tool.Parent = toolInstance
+		
+		-- Collision
+		setCollisionGroup(tool, "Viewmodel")
+		
+		local dropped
+		
+		-- [[ FUNCTIONS ]]
+		local function scaleTo(obj, value)
+			if obj:IsA('Model') then
+				obj:ScaleTo(value)
+			else
+				obj.Size = initialSize * value
+				obj:FindFirstChild("Handle").Position*=value
+			end
+		end
+		
+		local function cleanUp()
+			-- Restore original state
+			tool.Name = initialName
+			tool.Parent = initialParent
+			
+			-- Collision
+			setCollisionGroup(tool, "Default")
+			
+			-- Clean connections
+			dropped:Disconnect()
+			dropped = nil
+			
+			-- Scale the model
+			scaleTo(tool, 1/0.3)
+		end
+		
+		-- [[ EVENTS ]]
+		dropped = toolInstance:GetPropertyChangedSignal('Parent'):Connect(function()
+			if toolInstance.Parent ~= Backpack and toolInstance.Parent ~= plr.Character then
+				cleanUp()
+			end
+		end)
+	end
+	
+	return initialSize, tool, toolInstance
+end

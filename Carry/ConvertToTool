@@ -72,16 +72,7 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 		
 		local dropped
 		
-		-- [[ FUNCTIONS ]]
-		local function scaleTo(obj, value)
-			if obj:IsA('Model') then
-				obj:ScaleTo(value)
-			else
-				obj.Size = initialSize * value
-				obj:FindFirstChild("Handle").Position*=value
-			end
-		end
-		
+		-- [[ FUNCTIONS ]]		
 		local function cleanUp()
 			-- Restore original state
 			tool.Name = initialName
@@ -93,9 +84,6 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			-- Clean connections
 			dropped:Disconnect()
 			dropped = nil
-			
-			-- Scale the model
-			scaleTo(tool, 1/0.3)
 		end
 		
 		-- [[ EVENTS ]]

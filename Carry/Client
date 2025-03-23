@@ -306,7 +306,9 @@ function setCollisionGroup(obj, collisionGroup)
 end
 
 function convertToTool()
-	if CARRYING and CARRY_OBJECT and CARRY_OBJECT:GetAttribute("tool") then
+	if CARRYING and CARRY_OBJECT and CARRY_OBJECT:GetAttribute("tool") and LOCAL_PLAYER.Character then
+		local Character = LOCAL_PLAYER.Character
+		
 		-- [[ SERVER-SIDE ]]
 		local initialSize, tool, toolInstance = ConvertToTool_Event:InvokeServer(CARRY_OBJECT, CARRY_PART)
 		dragEnd(true)
@@ -355,9 +357,20 @@ function convertToTool()
 		
 		local function viewmodel(bool)
 			if bool then
+				-- [[ EQUIP ]]
 				Viewmodel.Parent = CURRENT_CAM
 				Viewmodel_tool.Parent = Viewmodel
+				
+				-- Match with character's appearence
+				local Shirt = Character:FindFirstChildWhichIsA("Shirt")
+				if Shirt then
+					Viewmodel.Shirt.ShirtTemplate = Shirt.ShirtTemplate
+				end
+				
+				Viewmodel["Left Arm"].Color = Character["Left Arm"].Color
+				Viewmodel["Right Arm"].Color = Character["Right Arm"].Color
 			else
+				-- [[ UNEQUIP ]]
 				Viewmodel.Parent = ReplicatedStorage
 				Viewmodel_tool.Parent = ReplicatedStorage
 			end
@@ -418,7 +431,7 @@ function convertToTool()
 			end
 		end)
 		
-		-- Making actual tool invisible
+		-- Making actual tool invisible and archive the properties
 		if tool:IsA("Model") then
 			for i, basepart in pairs(tool:GetDescendants()) do
 				if basepart:IsA("BasePart") then

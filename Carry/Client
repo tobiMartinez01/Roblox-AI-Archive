@@ -59,6 +59,12 @@ local Viewmodel = ReplicatedStorage.Viewmodel
 local Vm_Handle = Viewmodel["Right Arm"].Handle
 local ConvertToTool_Event = EVENTS.ConvertToTool
 
+-- Shortcuts
+local sin = math.sin
+local cos = math.cos
+local pi = math.pi
+local abs = math.abs
+
 -- [[ FUNCTION ]]
 function findCarriable(PART)
 	local CURRENT = PART
@@ -425,12 +431,6 @@ function convertToTool()
 			end
 		end)
 		
-		RenderStepped = RunService.RenderStepped:Connect(function()
-			if isEquipped then
-				Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame
-			end
-		end)
-		
 		-- Making actual tool invisible and archive the properties
 		if tool:IsA("Model") then
 			for i, basepart in pairs(tool:GetDescendants()) do
@@ -460,7 +460,40 @@ function convertToTool()
 			tool.Massless = true
 		end
 		
-		print(transparencyData)
+		local currentOmega = 0
+		local currentAmplitute = 0
+		local phase = 0 
+		
+		local maxAmplitute = 0.1
+		local smoothing = 5
+		
+		RenderStepped = RunService.RenderStepped:Connect(function(deltaTime)
+			if isEquipped then
+				--[[ REFERENCES ]]
+				local hrp = Character.HumanoidRootPart
+				
+				local velocity = hrp.Velocity
+				local speed = velocity.Magnitude
+				
+				-- Calculating velocity and amplitute
+				local targetOmega = speed * 0.15 * pi
+				local targetAmplitute = math.min(speed * 0.0025, maxAmplitute)
+				
+				-- Smoothing
+				currentOmega = currentOmega + (targetOmega - currentOmega) * deltaTime * smoothing
+				currentAmplitute = currentAmplitute + (targetAmplitute - currentAmplitute) * deltaTime * smoothing
+				
+				-- Phase adding up an addition (Ω*deltaTime) radian
+				phase = phase + currentOmega * deltaTime
+				
+				local bobbing = {
+					X = currentAmplitute * sin(phase + pi),
+					Y = abs(currentAmplitute/3 * cos(phase + pi)) - currentAmplitute/3
+				}
+				
+				Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame * CFrame.new(bobbing.X, bobbing.Y, 0)
+			end
+		end)
 	end
 end
 

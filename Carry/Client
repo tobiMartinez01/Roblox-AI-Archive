@@ -305,6 +305,34 @@ function setCollisionGroup(obj, collisionGroup)
 	end
 end
 
+function canCollide(obj, bool)
+	if obj:IsA("Model") then
+		for i, basepart in pairs(obj:GetDescendants()) do
+			if basepart:IsA("BasePart") and basepart.CanCollide ~= bool then
+				basepart.CanCollide = bool
+			end
+		end 
+	else
+		if obj.CanCollide ~= bool then
+			obj.CanCollide = bool
+		end
+	end
+end
+
+function massless(obj, bool)
+	if obj:IsA("Model") then
+		for i, basepart in pairs(obj:GetDescendants()) do
+			if basepart:IsA("BasePart") and basepart.Massless ~= bool then
+				basepart.Massless = bool
+			end
+		end 
+	else
+		if obj.Massless ~= bool then
+			obj.Massless = bool
+		end
+	end
+end
+
 function convertToTool()
 	if CARRYING and CARRY_OBJECT and CARRY_OBJECT:GetAttribute("tool") and LOCAL_PLAYER.Character then
 		local Character = LOCAL_PLAYER.Character
@@ -334,6 +362,10 @@ function convertToTool()
 		end
 		
 		scaleTo(Viewmodel_tool, 0.3)
+		
+		-- Turning off collision and mass
+		canCollide(Viewmodel_tool, false)
+		massless(Viewmodel_tool, true)
 		
 		-- Moving tool_part to viewmodel grip
 		tool_part.CFrame = Vm_Handle.WorldCFrame

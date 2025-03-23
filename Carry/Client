@@ -472,34 +472,37 @@ function convertToTool()
 			if isEquipped then
 				--[[ REFERENCES ]]
 				local humanoidState = Character.Humanoid:GetState()
-				if humanoidState ~= Enum.HumanoidStateType.Freefall and humanoidState ~= Enum.HumanoidStateType.Jumping then
-					local hrp = Character.HumanoidRootPart
+				local hrp = Character.HumanoidRootPart
 
-					local velocity = hrp.Velocity
-					local speed = velocity.Magnitude
+				local velocity = hrp.Velocity
+				local speed = velocity.Magnitude
 
-					-- Calculating velocity and amplitute
-					local targetOmega = speed * 0.15 * pi
-					local targetAmplitute = math.min(speed * 0.0025, maxAmplitute)
-
-					-- Smoothing
-					currentOmega = currentOmega + (targetOmega - currentOmega) * deltaTime * smoothing
-					currentAmplitute = currentAmplitute + (targetAmplitute - currentAmplitute) * deltaTime * smoothing
-
-					-- Phase adding up an addition (Ω*deltaTime) radian
-					phase = phase + currentOmega * deltaTime
-
-					local bobbing = {
-						X = currentAmplitute * sin(phase + pi),
-						Y = abs(currentAmplitute/3 * cos(phase + pi)) - currentAmplitute/3
-					}
-
-					local progress = abs(bobbing.X / currentAmplitute)
-
-					local alpha = TweenService:GetValue(progress, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-
-					Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame:Lerp(CURRENT_CAM.CFrame * CFrame.new(bobbing.X, bobbing.Y, 0), alpha)
+				-- Calculating velocity and amplitute
+				local targetOmega = speed * 0.15 * pi
+				local targetAmplitute = math.min(speed * 0.0025, maxAmplitute)
+				
+				if humanoidState == Enum.HumanoidStateType.Freefall or humanoidState == Enum.HumanoidStateType.Jumping then
+					targetOmega = 0
+					targetAmplitute = 0
 				end
+
+				-- Smoothing
+				currentOmega = currentOmega + (targetOmega - currentOmega) * deltaTime * smoothing
+				currentAmplitute = currentAmplitute + (targetAmplitute - currentAmplitute) * deltaTime * smoothing
+
+				-- Phase adding up an addition (Ω*deltaTime) radian
+				phase = phase + currentOmega * deltaTime
+
+				local bobbing = {
+					X = currentAmplitute * sin(phase + pi),
+					Y = abs(currentAmplitute/3 * cos(phase + pi)) - currentAmplitute/3
+				}
+
+				local progress = abs(bobbing.X / currentAmplitute)
+
+				local alpha = TweenService:GetValue(progress, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+
+				Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame:Lerp(CURRENT_CAM.CFrame * CFrame.new(bobbing.X, bobbing.Y, 0), alpha)
 			end
 		end)
 	end

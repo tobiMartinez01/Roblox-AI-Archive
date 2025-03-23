@@ -441,7 +441,10 @@ function convertToTool()
 						Massless = basepart.Massless
 					}
 					table.insert(transparencyData, data)
+					
+					--Changes
 					basepart.Transparency = 1
+					basepart.Massless = true
 				end
 			end
 		elseif tool:IsA("BasePart") then
@@ -451,7 +454,10 @@ function convertToTool()
 				Massless = tool.Massless
 			}
 			table.insert(transparencyData, data)
+			
+			--Changes
 			tool.Transparency = 1
+			tool.Massless = true
 		end
 		
 		print(transparencyData)

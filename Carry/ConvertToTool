@@ -74,6 +74,10 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 
 		-- [[ FUNCTIONS ]]		
 		local function cleanUp()
+			-- Clean connections
+			dropped:Disconnect()
+			dropped = nil
+			
 			-- Restore original state
 			tool.Name = initialName
 			tool.Parent = initialParent
@@ -81,10 +85,6 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			-- Collision
 			setCollisionGroup(tool, "Default")
 
-			-- Clean connections
-			dropped:Disconnect()
-			dropped = nil
-			
 			-- Destroy
 			toolInstance:Destroy()
 			toolInstance = nil

@@ -81,6 +81,10 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			-- Collision
 			setCollisionGroup(tool, "Default")
 			
+			-- Destroy
+			toolInstance:Destroy()
+			toolInstance = nil
+			
 			-- Clean connections
 			dropped:Disconnect()
 			dropped = nil

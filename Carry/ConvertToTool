@@ -24,24 +24,24 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 	local tool  = CARRY_OBJECT --:: Model or Basepart
 	local tool_part = CARRY_PART --:: PrimaryPart or Basepartpart
 	local toolHandle = tool_part:FindFirstChild("Handle") --:: Attachment
-	
+
 	local Backpack = plr.Backpack
-	
+
 	local ToolGrip = plr.Character["Right Arm"].RightGripAttachment
-	
+
 	local toolInstance
-	
+
 	local initialName
 	local initialParent
 	local initialSize
-	
+
 	-- If tool's handle exists then
 	if toolHandle then
 		-- [[ ARCHIVE ]]
 		initialName = tool_part.Name
 		initialParent = tool.Parent
 		initialSize = if tool:IsA("Model") then tool:GetScale() else tool.Size
-		
+
 		-- Checking if premade toolInstance exists
 		if Tools:FindFirstChild(tool.Name) then
 			-- Duplicate
@@ -55,41 +55,41 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			toolInstance.CanBeDropped = true
 			toolInstance.Parent = Backpack
 		end  
-		
+
 		-- Calculating grip
 		tool_part.CFrame = ToolGrip.WorldCFrame
 		toolInstance.Grip = ToolGrip.WorldCFrame:ToObjectSpace(toolHandle.WorldCFrame)
-		
+
 		-- Making tool be able to hold / tool_part --> Handle
 		tool_part.Name = "Handle"
 		tool_part.CanTouch = false
-		
+
 		-- Parenting tool model to tool
 		tool.Parent = toolInstance
-		
+
 		-- Collision
 		setCollisionGroup(tool, "Viewmodel")
-		
+
 		local dropped
-		
+
 		-- [[ FUNCTIONS ]]		
 		local function cleanUp()
 			-- Restore original state
 			tool.Name = initialName
 			tool.Parent = initialParent
-			
+
 			-- Collision
 			setCollisionGroup(tool, "Default")
+
+			-- Clean connections
+			dropped:Disconnect()
+			dropped = nil
 			
 			-- Destroy
 			toolInstance:Destroy()
 			toolInstance = nil
-			
-			-- Clean connections
-			dropped:Disconnect()
-			dropped = nil
 		end
-		
+
 		-- [[ EVENTS ]]
 		dropped = toolInstance:GetPropertyChangedSignal('Parent'):Connect(function()
 			if toolInstance.Parent ~= Backpack and toolInstance.Parent ~= plr.Character then
@@ -97,6 +97,6 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			end
 		end)
 	end
-	
+
 	return initialSize, tool, toolInstance
 end

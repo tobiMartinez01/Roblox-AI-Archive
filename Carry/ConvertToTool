@@ -1,6 +1,7 @@
 -- [[ SERVICES ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Tools = ReplicatedStorage.Tools
+local Debris = game:GetService("Debris")
 
 -- [[ REMOTES ]]
 local Events = ReplicatedStorage.Events
@@ -77,7 +78,7 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			-- Clean connections
 			dropped:Disconnect()
 			dropped = nil
-			
+
 			-- Restore original state
 			tool.Name = initialName
 			tool.Parent = initialParent
@@ -86,7 +87,7 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 			setCollisionGroup(tool, "Default")
 
 			-- Destroy
-			toolInstance:Destroy()
+			Debris:AddItem(toolInstance, 0)
 			toolInstance = nil
 		end
 

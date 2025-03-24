@@ -502,7 +502,7 @@ function convertToTool()
 
 				local alpha = TweenService:GetValue(progress, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 
-				Viewmodel.CamPart.CFrame = CURRENT_CAM.CFrame:Lerp(CURRENT_CAM.CFrame * CFrame.new(bobbing.X, bobbing.Y, 0), alpha)
+				Viewmodel.RootPart.CFrame = CURRENT_CAM.CFrame:Lerp(CURRENT_CAM.CFrame * CFrame.new(bobbing.X, bobbing.Y, 0), alpha)
 			end
 		end)
 	end

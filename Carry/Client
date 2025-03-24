@@ -296,7 +296,7 @@ function dragEnd(tool)
 		ALIGN_ORIENTATION.Parent = self
 
 		CARRY_EVENT:InvokeServer(false, CARRY_PART, tool)
-		
+
 		CARRY_OBJECT = nil
 		CARRY_PART = nil
 	end
@@ -329,21 +329,21 @@ local animation_cache = {}
 function convertToTool()
 	if CARRYING and CARRY_OBJECT and CARRY_OBJECT:GetAttribute("tool") and LOCAL_PLAYER.Character then
 		local Character = LOCAL_PLAYER.Character
-		
+
 		-- [[ SERVER-SIDE ]]
 		local initialSize, tool, toolInstance = ConvertToTool_Event:InvokeServer(CARRY_OBJECT, CARRY_PART)
 		dragEnd(true)
-		
+
 		-- [[ CLIENT-SIDE ]]
 		local transparencyData = {}
-		
+
 		-- Cloning tool model
 		local Viewmodel_tool = tool:Clone()
 		Viewmodel_tool.Name = "FakeModel"
-		
+
 		local tool_part = if Viewmodel_tool:IsA("Model") then Viewmodel_tool.PrimaryPart else Viewmodel_tool :: BasePart
 		local toolHandle = tool_part:FindFirstChild("Handle")
-		
+
 		-- Scale viewmodel down to match with viewmodel's scale
 		local function scaleTo(obj, value)
 			if obj:IsA('Model') then
@@ -353,21 +353,21 @@ function convertToTool()
 				obj:FindFirstChild("Handle").Position*=value
 			end
 		end
-		
+
 		scaleTo(Viewmodel_tool, 0.3)
-		
+
 		-- Moving tool_part to viewmodel grip
 		tool_part.CFrame = Vm_Handle.WorldCFrame
-		
+
 		-- Creating Motor6D rig
 		local Motor6D = Instance.new("Motor6D")
 		Motor6D.Parent = Viewmodel["Right Arm"]		
 		Motor6D.C0 = Viewmodel["Right Arm"].CFrame:ToObjectSpace(Vm_Handle.WorldCFrame)
 		Motor6D.C1 = Vm_Handle.WorldCFrame:ToObjectSpace(toolHandle.WorldCFrame)
-		
+
 		Motor6D.Part0 = Viewmodel["Right Arm"]
 		Motor6D.Part1 = tool_part
-		
+
 		-- [[ FUNCTIONS ]]
 		local equipped
 		local unequipped
@@ -375,19 +375,19 @@ function convertToTool()
 		local RenderStepped
 
 		local isEquipped = false
-		
+
 		local function viewmodel(bool)
 			if bool then
 				-- [[ EQUIP ]]
 				Viewmodel.Parent = CURRENT_CAM
 				Viewmodel_tool.Parent = Viewmodel
-				
+
 				-- Match with character's appearence
 				local Shirt = Character:FindFirstChildWhichIsA("Shirt")
 				if Shirt then
 					Viewmodel.Shirt.ShirtTemplate = Shirt.ShirtTemplate
 				end
-				
+
 				Viewmodel["Left Arm"].Color = Character["Left Arm"].Color
 				Viewmodel["Right Arm"].Color = Character["Right Arm"].Color
 			else
@@ -396,10 +396,10 @@ function convertToTool()
 				Viewmodel_tool.Parent = ReplicatedStorage
 			end
 		end
-		
+
 		local function cleanUp()
 			isEquipped = false
-			
+
 			-- Clean up connections
 			equipped:Disconnect()
 			unequipped:Disconnect()
@@ -413,10 +413,10 @@ function convertToTool()
 
 			-- Viewmodel visibility
 			viewmodel(isEquipped)
-			
+
 			-- Destroy
 			Viewmodel_tool:Destroy()
-			
+
 			-- Restore
 			for i, data in pairs(transparencyData) do
 				for property, value in pairs(data) do
@@ -426,52 +426,54 @@ function convertToTool()
 				end
 			end
 		end
-		
+
 		-- [[ EVENTS ]]	
 		equipped = toolInstance.Equipped:Connect(function()
-			-- Viewmodel visibility
 			isEquipped = true
-			viewmodel(isEquipped)	
+			
+			-- [[ EQUIP ANIMATION ]]
+			local equip = toolInstance:FindFirstChild("Equip")
+
+			if equip and equip:IsA("ObjectValue") then
+				if equip.Value then
+					local animation = equip.Value
+					local animationID = animation.AnimationId
+
+					if animation:IsA("Animation") and animationID then
+						local animationTrack = findAnimationTrackInTable(animation_cache, animationID)
+
+						--Cache the ID
+						if not animationTrack then
+							animationTrack = Vm_Humanoid.Animator:LoadAnimation(animation)
+							table.insert(animation_cache, animationTrack)
+						end
+
+						animationTrack.Looped = false
+						animationTrack.Priority = Enum.AnimationPriority.Idle
+						animationTrack:Play()
+						
+						-- Viewmodel visibility
+						viewmodel(isEquipped)	
+						
+						animationTrack.Stopped:Wait()
+					end
+				end
+			end
 		end)
-		
+
 		unequipped = toolInstance.Unequipped:Connect(function()
 			-- Viewmodel visibility
 			isEquipped = false
 			viewmodel(isEquipped)
 		end)
-		
+
 		-- [[ DROPPED ]]
 		dropped = toolInstance:GetPropertyChangedSignal('Parent'):Connect(function()
 			if toolInstance.Parent == workspace then
 				cleanUp()
-			else
-				-- [[ EQUIP ANIMATION ]]
-				local equip = toolInstance:FindFirstChild("Equip")
-
-				if equip and equip:IsA("ObjectValue") then
-					if equip.Value then
-						local animation = equip.Value
-						local animationID = animation.AnimationId
-
-						if animation:IsA("Animation") and animationID then
-							local animationTrack = findAnimationTrackInTable(animation_cache, animationID)
-
-							--Cache the ID
-							if not animationTrack then
-								animationTrack = Vm_Humanoid.Animator:LoadAnimation(animation)
-								table.insert(animation_cache, animationTrack)
-							end
-
-							animationTrack.Looped = false
-							animationTrack.Priority = Enum.AnimationPriority.Idle
-							animationTrack:Play()
-							animationTrack.Stopped:Wait()
-						end
-					end
-				end
 			end
 		end)
-		
+
 		-- Making actual tool invisible and archive the properties
 		if tool:IsA("Model") then
 			for i, basepart in pairs(tool:GetDescendants()) do
@@ -482,7 +484,7 @@ function convertToTool()
 						Massless = basepart.Massless
 					}
 					table.insert(transparencyData, data)
-					
+
 					--Changes
 					basepart.Transparency = 1
 					basepart.Massless = true
@@ -495,19 +497,19 @@ function convertToTool()
 				Massless = tool.Massless
 			}
 			table.insert(transparencyData, data)
-			
+
 			--Changes
 			tool.Transparency = 1
 			tool.Massless = true
 		end
-		
+
 		local currentOmega = 0
 		local currentAmplitute = 0
 		local phase = 0 
-		
+
 		local maxAmplitute = 0.1
 		local smoothing = 5
-		
+
 		RenderStepped = RunService.RenderStepped:Connect(function(deltaTime)
 			if isEquipped then
 				--[[ REFERENCES ]]
@@ -520,7 +522,7 @@ function convertToTool()
 				-- Calculating velocity and amplitute
 				local targetOmega = speed * 0.15 * pi
 				local targetAmplitute = math.min(speed * 0.0025, maxAmplitute)
-				
+
 				if humanoidState == Enum.HumanoidStateType.Freefall or humanoidState == Enum.HumanoidStateType.Jumping then
 					targetOmega = 0
 					targetAmplitute = 0
@@ -566,7 +568,7 @@ coroutine.wrap(function()
 					if CARRY_OBJECT or COMMENT then
 						-- Checking distance
 						local ORIGIN
-						
+
 						if CARRY_PART then
 							ORIGIN = CARRY_PART.Position
 						else
@@ -582,7 +584,7 @@ coroutine.wrap(function()
 								end
 							end
 						end
-						
+
 						local DISTANCE = (ORIGIN - CURRENT_CAM.CFrame.Position).Magnitude
 
 						if DISTANCE <= MIN_DISTANCE then

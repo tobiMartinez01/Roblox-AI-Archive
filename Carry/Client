@@ -58,6 +58,8 @@ local DEBOUNCE = 0.1 --Preventing fling
 -- Viewmodel references
 local Viewmodel = ReplicatedStorage.Viewmodel
 local Vm_Handle = Viewmodel["Right Arm"].Handle
+local Vm_Humanoid = Viewmodel.Humanoid
+
 local ConvertToTool_Event = EVENTS.ConvertToTool
 
 -- Shortcuts
@@ -312,6 +314,18 @@ function setCollisionGroup(obj, collisionGroup)
 	end
 end
 
+function findAnimationTrackInTable(t, animId)
+	for i, v in pairs(t) do
+		if v.Animation.AnimationId == animId then
+			return v
+		end
+	end
+
+	return false
+end
+
+local animation_cache = {}
+
 function convertToTool()
 	if CARRYING and CARRY_OBJECT and CARRY_OBJECT:GetAttribute("tool") and LOCAL_PLAYER.Character then
 		local Character = LOCAL_PLAYER.Character
@@ -426,9 +440,35 @@ function convertToTool()
 			viewmodel(isEquipped)
 		end)
 		
+		-- [[ DROPPED ]]
 		dropped = toolInstance:GetPropertyChangedSignal('Parent'):Connect(function()
-			if toolInstance.Parent ~= LOCAL_PLAYER.Backpack and toolInstance.Parent ~= LOCAL_PLAYER.Character then
+			if toolInstance.Parent == workspace then
 				cleanUp()
+			else
+				-- [[ EQUIP ANIMATION ]]
+				local equip = toolInstance:FindFirstChild("Equip")
+
+				if equip and equip:IsA("ObjectValue") then
+					if equip.Value then
+						local animation = equip.Value
+						local animationID = animation.AnimationId
+
+						if animation:IsA("Animation") and animationID then
+							local animationTrack = findAnimationTrackInTable(animation_cache, animationID)
+
+							--Cache the ID
+							if not animationTrack then
+								animationTrack = Vm_Humanoid.Animator:LoadAnimation(animation)
+								table.insert(animation_cache, animationTrack)
+							end
+
+							animationTrack.Looped = false
+							animationTrack.Priority = Enum.AnimationPriority.Idle
+							animationTrack:Play()
+							animationTrack.Stopped:Wait()
+						end
+					end
+				end
 			end
 		end)
 		

@@ -93,7 +93,7 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 
 		-- [[ EVENTS ]]
 		dropped = toolInstance:GetPropertyChangedSignal('Parent'):Connect(function()
-			if toolInstance.Parent ~= Backpack and toolInstance.Parent ~= plr.Character then
+			if toolInstance.Parent == workspace then
 				cleanUp()
 			end
 		end)

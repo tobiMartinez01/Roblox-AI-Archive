@@ -34,10 +34,10 @@ local phase = 0
 PLAYER.CharacterAdded:Connect(function(character)
 	CHARACTER = character
 	HRP = character.HumanoidRootPart
-	
+
 	local character_destroying
 	local state_changed
-	
+
 	state_changed = CHARACTER.Humanoid.StateChanged:Connect(function(oldState, newState)
 		if newState == Enum.HumanoidStateType.Jumping or newState == Enum.HumanoidStateType.Freefall then
 			viewbobbing_enabled = false
@@ -45,7 +45,7 @@ PLAYER.CharacterAdded:Connect(function(character)
 			viewbobbing_enabled = true
 		end
 	end)
-	
+
 	character_destroying = CHARACTER.Destroying:Connect(function()
 		character_destroying:Disconnect()
 	end)
@@ -61,7 +61,7 @@ function updateViewbobbing(DT)
 		local targetOmega = speed * 0.15 * pi
 		--//Using math.min to flexibly transit between different speed and humanoidstates
 		local targetAmplitute = math.min(speed * 0.015, AMPLITUTE)
-		
+
 		--//Checking if viewbobbing is enabled
 		if not viewbobbing_enabled then
 			targetOmega = 0

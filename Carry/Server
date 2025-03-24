@@ -193,7 +193,7 @@ function cleanUp(model)
 	end
 end
 
-Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
+Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART, isTool)
 	-- Carrying
 	local CARRY_MODEL = findModelByPrimaryPart(CARRY_PART)
 
@@ -215,7 +215,11 @@ Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART)
 		-- Carrying ended
 
 		-- Set collision
-		setCollisionGroup(CARRY_MODEL, "Default")
+		if not isTool then
+			setCollisionGroup(CARRY_MODEL, "Default")
+		else
+			setCollisionGroup(CARRY_MODEL, "Viewmodel")
+		end
 
 		-- Set up interaction
 		local INTERACTED = setUp(CARRY_MODEL)

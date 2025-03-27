@@ -1,23 +1,23 @@
---Self
+-- [[ SELF REFERENCES ]]
 local self = script.Parent
 local humanoid = self.Humanoid
 local hrp = self.HumanoidRootPart
 
---Set up
+-- [[ COLLISION ]]
 for i, bodypart in pairs(self:GetDescendants()) do
 	if bodypart:IsA("BasePart") then
 		bodypart.CollisionGroup = "SelfUncollide"
 	end
 end
 
---Workspaces
-local RunService = game["Run Service"]
-local PathFindingService = game["PathfindingService"]
+--[[ SERVICES ]]
+local RunService = game:GetService('RunService')
+local PathFindingService = game:GetService('PathfindingService')
 
---Libraries
+--[[ LIBRARIES ]]
 local NoobPath = require(game.ServerStorage.NoobPath)
 
---NoobPath
+-- [[ NOOBPATH ]]
 local pathParams = {
 	AgentHeight = self:GetExtentsSize().Y,
 	AgentCanJump = true,
@@ -33,30 +33,33 @@ local pathParams = {
 		SupportPartialPath = true
 	}
 }
+
 local path, jump = NoobPath.Humanoid(self, pathParams)
 path.Timeout = true -- Off by default, it calculate time necessary to travel between Waypoints and Check if the Character arrived after that amount of time, Trapped will be fired if the Character didn't reach Waypoint in time
 path.Speed = humanoid.WalkSpeed -- 16 by default, used to allow Timeout calculate time necessary to travel between Waypoints
 path.Visualize = false -- Off by default, basically generate visual spheres to represent Waypoints
 path.Interval = 0.05 -- 0.1 by default, determine the frequency of checks about Character's in air / jumping state
-path.Precise = true -- false by default, determine if the Character should wait until jump complete before begin moving to further waypoints
 
+-- Timeout updater
 local function updateValue()
 	if path.Speed ~= humanoid.WalkSpeed then
 		path.Speed = humanoid.WalkSpeed
 	end
 end
 
+humanoid:GetPropertyChangedSignal('WalkSpeed'):Connect(updateValue)
+
 local function findNearest()
 	local character, dist = nil, math.huge
+	
 	for _, player in ipairs(game.Players:GetPlayers()) do
 		if player.Character and (player.Character.PrimaryPart.Position - hrp.Position).Magnitude < dist then
 			character, dist = player.Character, (player.Character.PrimaryPart.Position - hrp.Position).Magnitude
 		end
 	end
+	
 	return character, dist
 end
-
-local heartbeatDebounce = false
 
 while RunService.Heartbeat:Wait(0.1) do
 	local target = findNearest()
@@ -67,7 +70,8 @@ while RunService.Heartbeat:Wait(0.1) do
 		local destination = target.HumanoidRootPart.Position
 
 		path:Run(destination)
-
+	
+		-- [[ CLIMB ]]
 		local wp = path:GetWaypoint()
 		if wp then
 			if wp.Label == "Climb" then

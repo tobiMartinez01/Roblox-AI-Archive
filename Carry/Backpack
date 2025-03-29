@@ -1,10 +1,10 @@
 -- [[ SERVICES ]]
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Tools = ReplicatedStorage.Tools
+local ServerStorage = game:GetService("ServerStorage")
+local Tools = ServerStorage.Tools
 local Debris = game:GetService("Debris")
 
 -- [[ REMOTES ]]
-local Events = ReplicatedStorage.Events
+local Events = ServerStorage.Events
 local ConvertToTool_Event = Events.ConvertToTool
 
 -- [[ FUNCTIONs ]]

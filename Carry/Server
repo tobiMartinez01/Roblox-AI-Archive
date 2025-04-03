@@ -58,6 +58,22 @@ function setCollisionGroup(part, collisionGroup)
 	end
 end
 
+function canTouch(obj, bool)
+	if obj:IsA("Model") and obj.PrimaryPart then
+		if obj.PrimaryPart.CanTouch ~= bool then
+			for i, basePart in pairs(obj:GetDescendants()) do
+				if basePart:IsA("BasePart") and basePart.CanTouch ~= bool then
+					basePart.CanTouch = bool
+				end
+			end
+		end
+	else
+		if obj.CanTouch ~= bool then
+			obj.CanTouch = bool
+		end
+	end
+end
+
 function SetNetworkOwner(obj, owner)
 	if obj:IsA("Model") then
 		for i, basepart in pairs(obj:GetDescendants()) do
@@ -203,6 +219,9 @@ Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART, isTool)
 		-- Set collision
 		setCollisionGroup(CARRY_MODEL, "SelfUncollide")
 
+		-- Set CanTouch
+		canTouch(CARRY_MODEL, true)
+
 		-- Make the object to be draggable
 		CARRY_PART.Anchored = false
 
@@ -220,6 +239,9 @@ Carry_Event.OnServerInvoke = function(PLR, IS_CARRYING, CARRY_PART, isTool)
 		else
 			setCollisionGroup(CARRY_MODEL, "Viewmodel")
 		end
+		
+		-- Set CanTouch
+		canTouch(CARRY_MODEL, false)
 
 		-- Set up interaction
 		local INTERACTED = setUp(CARRY_MODEL)

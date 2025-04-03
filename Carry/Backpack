@@ -67,9 +67,6 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 
 		-- Parenting tool model to tool
 		tool.Parent = toolInstance
-		
-		-- Preventing the tool to be picked up by touching
-		tool_part:WaitForChild("TouchInterest"):Destroy()
 
 		-- Collision
 		setCollisionGroup(tool, "Viewmodel")

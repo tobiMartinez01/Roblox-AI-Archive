@@ -64,10 +64,12 @@ ConvertToTool_Event.OnServerInvoke = function(plr, CARRY_OBJECT, CARRY_PART)
 
 		-- Making tool be able to hold / tool_part --> Handle
 		tool_part.Name = "Handle"
-		tool_part.CanTouch = false
 
 		-- Parenting tool model to tool
 		tool.Parent = toolInstance
+		
+		-- Preventing the tool to be picked up by touching
+		tool_part:WaitForChild("TouchInterest"):Destroy()
 
 		-- Collision
 		setCollisionGroup(tool, "Viewmodel")
